@@ -1,0 +1,17 @@
+2048 Kb Flash = 0x200000
+
+0x100000 = USER_CONFIG
+0x101000 = private key
+0x102000 = ???
+
+0x103000 = custom CONFIG1
+0x103FFF = 4K
+
+0x104000 = custom CONFIG2
+0x104FFF = 4K
+
+
+
+frei do: 0x1fc000
+
+Velikost FLASH PAGE: W25Q16BVSSIG: 256 bytes / 4 bytes array
