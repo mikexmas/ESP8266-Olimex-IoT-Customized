@@ -29,6 +29,7 @@
 LOCAL mb_dio_config_t *p_dio_config = NULL;
 LOCAL mb_dio_work_t dio_work[MB_DIO_ITEMS];
 LOCAL volatile uint32_t dio_all_inputs = 0; // a mask containing all of the initiated interrupt pins
+LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
 // forward declarations
 LOCAL void mb_dio_disableInterrupt(int8_t pin);
@@ -79,14 +80,22 @@ mb_dio_intr_handler(void *arg) {
 	}
 }
 
+/* Timeout when pulse enabled */
 LOCAL void ICACHE_FLASH_ATTR mb_dio_output_timer(mb_dio_work_t *p_work) {
 	if (p_work != NULL && p_work->p_config != NULL) {
 		os_timer_disarm(&p_work->timer);
 		p_work->timer_run = 0;
-		//MB_DIO_DEBUG("DIO:OUTPUT_Timer222:Id:%d,State:%d,StateOld:%d\n", p_work->index, p_work->state, p_work->state_old);
+		MB_DIO_DEBUG("DIO:OUTPUT_Timer222:Id:%d,State:%d,StateOld:%d\n", p_work->index, p_work->state, p_work->state_old);
 		p_work->state_old = p_work->state;
 		p_work->state = !p_work->state;
 		mb_dio_set_output(p_work);
+		
+		// send state update only when pulse ended => make separate timer not to call from this thread
+		if (p_work->state == 0 && p_work->state_old == 1 && p_work->p_config->pls_on != 0 && p_work->p_config->pls_off == 0) {
+				os_timer_disarm(&p_work->timer);
+				os_timer_setfn(&p_work->timer, (os_timer_func_t *)mb_dio_send_state, p_work);
+				os_timer_arm(&p_work->timer, 2, 0);
+		}
 	}	
 }
 
@@ -95,8 +104,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 		uint8 tmp_state = (p_work->p_config->inverse ? !p_work->state : p_work->state);
 		GPIO_OUTPUT_SET(p_work->p_config->gpio_pin, tmp_state);
 		MB_DIO_DEBUG("DIO:OutSet:Index:%d,Gpio:%d,State:%d,StateOld:%d,PhyPin:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state, p_work->state_old, tmp_state);
-
-		if (!p_work->state_old && p_work->state && p_work->p_config->pls_on != 0) {
+		
+		if (!p_work->state_old && p_work->state && p_work->p_config->pls_on != 0) {	// set timeout when pulse
 			if (!p_work->timer_run) {
 				//clearTimeout(p_work->timer_pls);
 				//p_work->timer_pls = setTimeout(mb_dio_output_timer, p_work, p_work->p_config->pls_on);
@@ -105,7 +114,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 				os_timer_arm(&p_work->timer, p_work->p_config->pls_on, 0);
 				p_work->timer_run = 1;
 			}
-		} else if (p_work->state_old && !p_work->state && p_work->p_config->pls_off != 0) {
+		} else if (p_work->state_old && !p_work->state && p_work->p_config->pls_off != 0) {	// set timeout when repeating puls
 			if (!p_work->timer_run) {
 				//clearTimeout(p_work->timer_pls);
 				//p_work->timer_pls = setTimeout(mb_dio_output_timer, p_work, p_work->p_config->pls_off);
@@ -116,14 +125,16 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 			}
 		}
 
-		/*
-		char response[WEBSERVER_MAX_RESPONSE_LEN];
-		p_work->state_old = p_work->state;
-		mb_dio_set_response(response, p_work, false);
-		user_event_raise(MB_DIO_URL, response);
-		*/
 	}
 	
+	return;
+}
+
+// Helper to prepare and send rerspone
+LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
+	char response[WEBSERVER_MAX_RESPONSE_LEN];
+	mb_dio_set_response(response, p_work, false);
+	user_event_raise(MB_DIO_URL, response);
 	return;
 }
 
