@@ -197,7 +197,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 			(os_strlen(p_work->p_config->name) == 0 ? "field1" : p_work->p_config->name),
 			p_work->state
 		);
-		
+
 	// event: do we want special format (IFTTT): { "value1" : "", "value2" : "", "value3" : "" }
 	} else if (reqType==MB_REQTYPE_NONE && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
 		char signal_name[20];

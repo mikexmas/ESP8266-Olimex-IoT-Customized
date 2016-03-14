@@ -253,8 +253,6 @@
 		#define USER_CONFIG_DEFAULT_EVENT_PATH "/"
 	#endif
 	
-	#define USER_CONFIG_EVENTS_FORMAT_THINGSPEAK	0x01	// Special format for THINGSPEAK; send data only, not other events
-	
 	#include "ip_addr.h"
 	#include "user_webserver.h"
 	

@@ -20,13 +20,15 @@
 		typedef struct {
 			uint8 autostart;
 			uint8 each;
+			uint8 decimals;
 			uint8 post_type;
-			uint8 free1;
 			uint32 refresh;
 			float threshold;
 			float scale_k;	// care about aligning 4 bytes
 			float scale_y;	// care about aligning 4 bytes
 			char name[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK
+			float low;		// IFTTT limits
+			float hi;
 		} mb_adc_config_t;
 		
 		void mb_adc_init(uint8 isStartReading);

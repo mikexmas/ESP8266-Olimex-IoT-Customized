@@ -142,7 +142,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 			mb_dht_hum_str
 		);
 	
-	// event: special case - thingspeak; measurement is evaluated before
+	// event: special case - ifttt; measurement is evaluated before
 	} else if (req_type==MB_REQTYPE_SPECIAL && p_dht_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
 		char signal_name[30];
 		signal_name[0] = 0x00;
@@ -184,6 +184,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 	LOCAL uint8 errCount =0;
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
 	char tmp_str[20];
+	char tmp_str1[20];
 	
 	//if (dht_read()) {
 	if (dht_read_from_sensor()) {
@@ -197,9 +198,9 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 	
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_dht_sensor_fault && mb_dht_temp_str[0] != 0x00 && mb_dht_hum_str[0] != 0x00 && p_dht_config->refresh * errCount < 180) {
-		if (abs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t || abs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h || (count >= p_dht_config->each)) {
+		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t || uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h || (count >= p_dht_config->each)) {
 
-			MB_DHT_DEBUG("DHT: Change Temp: [%s] -> [%s], Hum: [%s] -> [%s], Count: [%d]/[%d]\n", uhl_flt2str(tmp_str, old_state_t, 2), mb_dht_temp_str, uhl_flt2str(tmp_str, old_state_h, 2), mb_dht_hum_str, p_dht_config->each, count);
+			MB_DHT_DEBUG("DHT: Change Temp: [%s] -> [%s], Hum: [%s] -> [%s], Count: [%d]/[%d]\n", uhl_flt2str(tmp_str, old_state_t, 2), mb_dht_temp_str, uhl_flt2str(tmp_str1, old_state_h, 2), mb_dht_hum_str, p_dht_config->each, count);
 
 			old_state_t = mb_dht_temp;
 			old_state_h = mb_dht_hum;
@@ -207,19 +208,26 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 			
 			// Special handling; notify once only when limit exceeded
 			if (p_dht_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-				if ((mb_dht_temp < p_dht_config->low_t || mb_dht_temp > p_dht_config->hi_t || mb_dht_hum < p_dht_config->low_h || mb_dht_hum > p_dht_config->hi_h) && !mb_event_notified) {
+				if (!mb_event_notified
+					&& (((uhl_fabs(p_dht_config->low_t - p_dht_config->hi_t) > 1.0) && (mb_dht_temp < p_dht_config->low_t || mb_dht_temp > p_dht_config->hi_t))
+						|| ((uhl_fabs(p_dht_config->low_h - p_dht_config->hi_h) > 1.0) && (mb_dht_hum < p_dht_config->low_h || mb_dht_hum > p_dht_config->hi_h)))
+					) {
 					mb_event_notified = 1;
 					mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
 					user_event_raise(MB_DHT_URL, response);
-				} else if (mb_event_notified && (mb_dht_temp > p_dht_config->low_t + p_dht_config->threshold_t) && (mb_dht_temp < p_dht_config->hi_t -  p_dht_config->threshold_t) && (mb_dht_hum > p_dht_config->low_h + p_dht_config->threshold_h) && (mb_dht_hum < p_dht_config->hi_h -  p_dht_config->threshold_h)) {		// reset notiofication with hysteresis
+				} else if (mb_event_notified 
+						&& ((mb_dht_temp > p_dht_config->low_t + p_dht_config->threshold_t) && (mb_dht_temp < p_dht_config->hi_t -  p_dht_config->threshold_t)
+							|| (mb_dht_hum > p_dht_config->low_h + p_dht_config->threshold_h) && (mb_dht_hum < p_dht_config->hi_h -  p_dht_config->threshold_h))
+						) {		// reset notification with hysteresis
 					mb_event_notified = 0;
 				}
 			}
-			// Standard event
-			else {
+
+			// Standard event - send anyway,ifttt is additional
+			// else {
 				mb_dht_set_response(response, false, MB_REQTYPE_NONE);
 				user_event_raise(MB_DHT_URL, response);
-			}
+			//}
 		}
 	}
 	else {
@@ -326,23 +334,23 @@ void ICACHE_FLASH_ATTR mb_dht_handler(
 				} else if (jsonparse_strcmp_value(&parser, "Low_t") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->low_t = uhl_jsonparse_get_value_as_float(&parser);
-					MB_DHT_DEBUG("DHT:JSON:Low_t:%s\n", uhl_flt2str(tmp_str, p_dht_config->low_t, 2));
+					MB_DHT_DEBUG("DHT:JSON:Low_t:%s\n", uhl_flt2str(tmp_str, p_config->low_t, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Hi_t") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->hi_t = uhl_jsonparse_get_value_as_float(&parser);
-					MB_DHT_DEBUG("DHT:JSON:Hi_t:%s\n", uhl_flt2str(tmp_str, p_dht_config->hi_t, 2));
+					MB_DHT_DEBUG("DHT:JSON:Hi_t:%s\n", uhl_flt2str(tmp_str, p_config->hi_t, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Low_h") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->low_h = uhl_jsonparse_get_value_as_float(&parser);
-					MB_DHT_DEBUG("DHT:JSON:Low_h:%s\n", uhl_flt2str(tmp_str, p_dht_config->low_h, 2));
+					MB_DHT_DEBUG("DHT:JSON:Low_h:%s\n", uhl_flt2str(tmp_str, p_config->low_h, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Hi_h") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->hi_h = uhl_jsonparse_get_value_as_float(&parser);
-					MB_DHT_DEBUG("DHT:JSON:Hi_h:%s\n", uhl_flt2str(tmp_str, p_dht_config->hi_h, 2));
+					MB_DHT_DEBUG("DHT:JSON:Hi_h:%s\n", uhl_flt2str(tmp_str, p_config->hi_h, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Post_type") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->post_type = jsonparse_get_value_as_int(&parser);
-					MB_DHT_DEBUG("DHT:JSON:PostType:%d\n", p_config->post_type);
+					MB_DHT_DEBUG("DHT:JSON:Post_type:%d\n", p_config->post_type);
 				}
 				// Not config params
 				else if (jsonparse_strcmp_value(&parser, "Start") == 0) {

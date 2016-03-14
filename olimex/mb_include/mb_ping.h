@@ -22,6 +22,8 @@
 			float threshold;
 			float offset;
 			char name[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK
+			float low;
+			float hi;
 		} mb_ping_config_t;
 		
 		#define MB_PING_AUTOSTART				 0		// no default autostart
