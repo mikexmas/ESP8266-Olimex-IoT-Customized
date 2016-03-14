@@ -15,3 +15,13 @@
 frei do: 0x1fc000
 
 Velikost FLASH PAGE: W25Q16BVSSIG: 256 bytes / 4 bytes array
+
+
+IFTTT setings
+Host: maker.ifttt.com
+Entry point: /trigger/mihaevent/with/key/caEQMoun9gKBbzvV2JjsOs
+
+THINGSPEAK
+api.thingspeak.com
+/update.json
+Token: B0ICO00RMOKRNDV0

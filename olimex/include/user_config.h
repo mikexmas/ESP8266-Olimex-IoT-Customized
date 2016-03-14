@@ -3,7 +3,7 @@
 	
 	#define USE_OPTIMIZE_PRINTF
 	
-	#define CONNECTIONS_DEBUG                  1
+	#define CONNECTIONS_DEBUG                  0
 	#define WIFI_DEBUG_ENABLE                  0
 	
 	#define SSL_ENABLE                       SSL
@@ -169,24 +169,24 @@
 		#define UART1_ENABLE                   0
 		
 		// ESP8266-EVB native
-		#define BUTTON_ENABLE                  1
-		#define RELAY_ENABLE                   1
-		#define ADC_ENABLE                     1
+		#define BUTTON_ENABLE                  0
+		#define RELAY_ENABLE                   0
+		#define ADC_ENABLE                     0
 		// ESP8266-EVB-BAT native
 		#define BATTERY_ENABLE                 0
 		
 		// UEXT modules
 		// UART
-		#define MOD_RFID_ENABLE                1
-		#define MOD_FINGER_ENABLE              1
-		#define MOD_EMTR_ENABLE                1
+		#define MOD_RFID_ENABLE                0
+		#define MOD_FINGER_ENABLE              0
+		#define MOD_EMTR_ENABLE                0
 		// I2C
-		#define MOD_RGB_ENABLE                 1
-		#define MOD_TC_MK2_ENABLE              1
-		#define MOD_IO2_ENABLE                 1
-		#define MOD_IRDA_ENABLE                1
+		#define MOD_RGB_ENABLE                 0
+		#define MOD_TC_MK2_ENABLE              0
+		#define MOD_IO2_ENABLE                 0
+		#define MOD_IRDA_ENABLE                0
 		// SPI
-		#define MOD_LED_8x8_RGB_ENABLE         1
+		#define MOD_LED_8x8_RGB_ENABLE         0
 	#endif
 /***********************************************/
 
@@ -273,7 +273,7 @@
 		ip_config access_point;
 		ip_config station;
 		uint8     station_auto_connect;
-		
+
 		char      events_server[USER_CONFIG_EVENTS_SIZE];
 		char      events_user[USER_CONFIG_USER_SIZE];
 		char      events_password[USER_CONFIG_USER_SIZE];
@@ -286,13 +286,6 @@
 		char      station_hostname[USER_CONFIG_HOSTNAME_SIZE];
 
 		char      check[7];
-		
-		// Additional settings; leave "check" bytes at same location to preserve old configuration data when upgrading FW
-		uint8     events_data_post_format;							// 0x01 = Pure Data Only (like ThingSpeak)
-		uint8     free1;
-		uint8     free2;
-		uint8     free3;
-		
 	} user_config;
 	
 	typedef void (*wifi_station_connected_callback)(void);
@@ -322,7 +315,6 @@
 	char *user_config_events_path();
 	char *user_config_events_name();
 	char *user_config_events_token();
-	uint8 user_config_events_post_format();
 	
 	void config_handler(
 		struct espconn *pConnection, 

@@ -32,55 +32,72 @@ LOCAL volatile uint32_t dio_all_inputs = 0; // a mask containing all of the init
 LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
 // forward declarations
-LOCAL void mb_dio_disableInterrupt(int8_t pin);
 LOCAL void mb_dio_intr_handler(void *arg);
-LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, bool is_post);
+LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 reqType);
 LOCAL void mb_dio_set_output(mb_dio_work_t *p_work);
 
-LOCAL void
-mb_dio_disableInterrupt(int8_t pin) {
-  if (pin>=0){
-    gpio_pin_intr_state_set(GPIO_ID_PIN(pin), GPIO_PIN_INTR_DISABLE);
-  }
-}
-
+// GPIO interruot timer to determine stabile output
 LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
 	os_timer_disarm(&p_work->timer);
-	char response[WEBSERVER_MAX_RESPONSE_LEN];
-	
-	p_work->state = GPIO_INPUT_GET(p_work->p_config->gpio_pin);
-	if (p_work->p_config->inverse) {
-		p_work->state = !p_work->state;
+	uint8 state_cur = GPIO_INPUT_GET(p_work->p_config->gpio_pin);
+	uint8 handled = 0;
+
+	// Check new state => event; when ANY edge detection => allways send
+	if (((p_work->p_config->type >= DIO_IN_NOPULL && p_work->p_config->type <= DIO_IN_PULLUP)
+			|| (p_work->p_config->type >= DIO_IN_NOPULL_LONG && p_work->p_config->type <= DIO_IN_PULLUP_LONG))
+			&& (p_work->state != p_work->state_old)) {
+		p_work->state = p_work->state_new;
+		p_work->state_old = !p_work->state;
+		if (p_work->p_config->inverse) {
+			p_work->state = !p_work->state;
+		}
+		p_work->state_old = !p_work->state;
+		handled = true;
 	}
-	
-	MB_DIO_DEBUG("DIO:Intr:Timer:Index:%d,Gpio:%d,State:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state);
-	
-	// Check new state => event; when edge detection => allways send
-	if ((p_work->p_config->type >= DIO_IN_PU_POS || p_work->p_config->type <= DIO_IN_NP_NEG) || (p_work->state != p_work->state_old)) {
-		p_work->state_old = p_work->state;
-		mb_dio_set_response(response, p_work, false);
-		user_event_raise(MB_DIO_URL, response);
+	// positive edge detection
+	else if (((p_work->p_config->type >= DIO_IN_PU_POS && p_work->p_config->type <= DIO_IN_NP_POS)
+			|| (p_work->p_config->type >= DIO_IN_PU_POS_LONG && p_work->p_config->type <= DIO_IN_NP_POS_LONG))
+			&& (state_cur == 1)) {
+		p_work->state = (p_work->p_config->inverse ? 0 : 1);
+		p_work->state_old = !p_work->state;
+		handled = true;
+	}
+	// negative edge detection
+	else if (((p_work->p_config->type >= DIO_IN_PU_NEG && p_work->p_config->type <= DIO_IN_NP_NEG)
+			|| (p_work->p_config->type >= DIO_IN_PU_NEG_LONG && p_work->p_config->type <= DIO_IN_NP_NEG_LONG))
+			&& (state_cur == 0)) {
+		p_work->state = (p_work->p_config->inverse ? 1 : 0);
+		p_work->state_old = !p_work->state;
+		handled = true;
+	}
+
+	if (handled) {
+		MB_DIO_DEBUG("DIO:Intr:Timer:Index:%d,Gpio:%d,GPIOState:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, state_cur, p_work->state, p_work->state_old);
+		mb_dio_send_state(p_work);
 	}
 }
 
-LOCAL void
-mb_dio_intr_handler(void *arg) {
+// GPIO interrupt handler
+LOCAL void mb_dio_intr_handler(void *arg) {
 	uint32_t gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
   
 	int i=0;
 	for (i;i<MB_DIO_ITEMS;i++) {
 		mb_dio_work_t *p_cur_work = &dio_work[i];
-		if (p_cur_work->p_config != NULL && p_cur_work->p_config->type >=DIO_IN_NOPULL && p_cur_work->p_config->type <=19 &&  p_cur_work->p_config->gpio_pin >= 0 && (gpio_status & BIT(p_cur_work->p_config->gpio_pin))) {
+		if (p_cur_work->p_config != NULL && p_cur_work->p_config->type >=DIO_IN_NOPULL && p_cur_work->p_config->type <=__DIO_IN_LAST &&  p_cur_work->p_config->gpio_pin >= 0 && (gpio_status & BIT(p_cur_work->p_config->gpio_pin))) {
 			GPIO_REG_WRITE(GPIO_STATUS_W1TC_ADDRESS, gpio_status & BIT(p_cur_work->p_config->gpio_pin));
 
+			p_cur_work->state_new = GPIO_INPUT_GET(p_cur_work->p_config->gpio_pin);		// remember state of input in interrupt
+
+			// timer to determine stability of signal: it is settable
 			os_timer_disarm(&p_cur_work->timer);
 			os_timer_setfn(&p_cur_work->timer, (os_timer_func_t *)mb_dio_intr_timer, p_cur_work);
-			os_timer_arm(&p_cur_work->timer, MB_DIO_FLT_TOUT, 0);
+			os_timer_arm(&p_cur_work->timer, p_cur_work->flt_time, 0);
 		}
 	}
 }
 
-/* Timeout when pulse enabled */
+/* Timeout when OUT pulse enabled */
 LOCAL void ICACHE_FLASH_ATTR mb_dio_output_timer(mb_dio_work_t *p_work) {
 	if (p_work != NULL && p_work->p_config != NULL) {
 		os_timer_disarm(&p_work->timer);
@@ -99,6 +116,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_output_timer(mb_dio_work_t *p_work) {
 	}	
 }
 
+/* Sets output of given GPIO */
 LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 	if (p_work != NULL && p_work->p_config != NULL) {
 		uint8 tmp_state = (p_work->p_config->inverse ? !p_work->state : p_work->state);
@@ -107,8 +125,6 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 		
 		if (!p_work->state_old && p_work->state && p_work->p_config->pls_on != 0) {	// set timeout when pulse
 			if (!p_work->timer_run) {
-				//clearTimeout(p_work->timer_pls);
-				//p_work->timer_pls = setTimeout(mb_dio_output_timer, p_work, p_work->p_config->pls_on);
 				os_timer_disarm(&p_work->timer);
 				os_timer_setfn(&p_work->timer, (os_timer_func_t *)mb_dio_output_timer, p_work);
 				os_timer_arm(&p_work->timer, p_work->p_config->pls_on, 0);
@@ -116,15 +132,12 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 			}
 		} else if (p_work->state_old && !p_work->state && p_work->p_config->pls_off != 0) {	// set timeout when repeating puls
 			if (!p_work->timer_run) {
-				//clearTimeout(p_work->timer_pls);
-				//p_work->timer_pls = setTimeout(mb_dio_output_timer, p_work, p_work->p_config->pls_off);
 				os_timer_disarm(&p_work->timer);
 				os_timer_setfn(&p_work->timer, (os_timer_func_t *)mb_dio_output_timer, p_work);
 				os_timer_arm(&p_work->timer, p_work->p_config->pls_off, 0);
 				p_work->timer_run = 1;
 			}
 		}
-
 	}
 	
 	return;
@@ -133,29 +146,22 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 // Helper to prepare and send rerspone
 LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
-	mb_dio_set_response(response, p_work, false);
+	mb_dio_set_response(response, p_work, MB_REQTYPE_NONE);
 	user_event_raise(MB_DIO_URL, response);
 	return;
 }
 
-LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *p_work, bool is_post) {
+// prepare response for event consumer
+LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 reqType) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
 	
 	mb_make_full_device_name(full_device_name, MB_DIO_DEVICE, USER_CONFIG_USER_SIZE);
 	
-	MB_DIO_DEBUG("DIO web response: hostname ? %s\n"
-		"    Running: %s\n"
-		"    DIO Gpio:%d\n"
-		"    State:%d\n", 
-		full_device_name,
-		"",
-		(p_work != NULL ? p_work->p_config->gpio_pin : -1),
-		(p_work != NULL ? p_work->state : -1)
-	);
+	MB_DIO_DEBUG("DIO web response preparing.\n");
 	
 	// POST request - status & config only
-	if (is_post) {
+	if (reqType == MB_REQTYPE_POST) {
 		int i=0;
 		char str_tmp[256];
 		str_tmp[0] = 0x00;
@@ -164,7 +170,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 			if (p_cur_work->p_config != NULL) {
 				char tmp_1[48];
 				mb_dio_config_item_t *p_cur_config = p_cur_work->p_config;
-				os_sprintf(tmp_1, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off);
+				os_sprintf(tmp_1, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type:\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type);
 				os_strcat(str_tmp, tmp_1);
 			}
 		}
@@ -181,16 +187,39 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 			)
 		);
 
-	// event: do we want special format (thingspeak) (
-	} else if (user_config_events_post_format() == USER_CONFIG_EVENTS_FORMAT_THINGSPEAK && p_work != NULL) {		// states change only
+	// event: do we want special format (thingspeak)
+	} else if (reqType==MB_REQTYPE_NONE && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
-			"{\"api_key\":\"%s\", \"%s\":%s}",
+			"%s{\"api_key\":\"%s\", \"%s\":%d}",
+			MB_POSTTYPE_THINGSPEAK_STR,
 			user_config_events_token(),
 			(os_strlen(p_work->p_config->name) == 0 ? "field1" : p_work->p_config->name),
 			p_work->state
 		);
-	// normal event measurement
+		
+	// event: do we want special format (IFTTT): { "value1" : "", "value2" : "", "value3" : "" }
+	} else if (reqType==MB_REQTYPE_NONE && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
+		char signal_name[20];
+		signal_name[0] = 0x00;
+		if (os_strlen(p_work->p_config->name) == 0) {
+			if (p_work->p_config->type >= DIO_IN_NOPULL && p_work->p_config->type<=__DIO_IN_LAST)
+				os_sprintf(signal_name, "DIO-IN_%d", p_work->p_config->gpio_pin);
+			else
+				os_sprintf(signal_name, "DIO-OUT_%d", p_work->p_config->gpio_pin);
+		}
+		else {
+			os_strncpy(signal_name, p_work->p_config->name, MB_VARNAMEMAX);
+		}
+		json_sprintf(
+			response,
+			"%s{\"value1\":\"%s\",\"value2\":\"%d\"}",
+			MB_POSTTYPE_IFTTT_STR,
+			signal_name,
+			p_work->state
+		);
+
+	// normal event measurement: get or nothing else happened
 	} else {
 		// prepare string
 		char str_tmp[256];
@@ -205,7 +234,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 					mb_dio_config_item_t *p_cur_config = p_cur_work->p_config;
 					if (p_cur_config->type >= DIO_IN_NOPULL && p_cur_config->type <= __DIO_IN_LAST) {
 						os_sprintf(tmp_1, "%s\"Input%d\": %d", (str_tmp[0] == 0x00 ? "" : ","), i, p_cur_work->state);
-					} else if (p_cur_config->type >= DIO_OUT && p_cur_config->type <= __DIO_LAST) {
+					} else if (p_cur_config->type >= DIO_OUT_NOPULL && p_cur_config->type <= __DIO_LAST) {
 						os_sprintf(tmp_1, "%s\"Output%d\": %d", (str_tmp[0] == 0x00 ? "" : ","), i, p_cur_work->state);
 					}
 					os_strcat(str_tmp, tmp_1);
@@ -215,7 +244,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 			mb_dio_config_item_t *p_cur_config = p_work->p_config;
 			if (p_cur_config->type >= DIO_IN_NOPULL && p_cur_config->type <= __DIO_IN_LAST) {
 				os_sprintf(str_tmp, "\"Input%d\": %d", p_work->index, p_work->state);
-			} else if (p_cur_config->type >= DIO_OUT && p_cur_config->type <= __DIO_OUT_LAST) {
+			} else if (p_cur_config->type >= DIO_OUT_NOPULL && p_cur_config->type <= __DIO_OUT_LAST) {
 				os_sprintf(str_tmp, "\"Output%d\": %d", p_work->index, p_work->state);
 			}
 		}
@@ -233,6 +262,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	}
 }
 
+/* HW init from config */
 LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 	bool rv = false;
 	mb_dio_config_item_t *p_cur_config = &p_dio_config->items[index];
@@ -242,56 +272,85 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 	int pin = p_cur_config->gpio_pin;
 	EasyGPIO_PullStatus pin_stat = -1;
 	EasyGPIO_PinMode pin_mode = 0;
-	GPIO_INT_TYPE pin_trig = GPIO_PIN_INTR_ANYEDGE;	// input trigger
+	GPIO_INT_TYPE pin_trig = GPIO_PIN_INTR_ANYEDGE;		// input trigger
 	switch (p_cur_config->type) {
 	case DIO_IN_NOPULL:
+	case DIO_IN_NOPULL_LONG:
 		pin_stat = EASYGPIO_NOPULL;
 		pin_mode = EASYGPIO_INPUT;
 		break;
 	case DIO_IN_PULLUP:
+	case DIO_IN_PULLUP_LONG:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_INPUT;
 		break;
 	case DIO_IN_PU_POS:
+	case DIO_IN_PU_POS_LONG:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_INPUT;
 		pin_trig = GPIO_PIN_INTR_POSEDGE;
 		break;
-	case DIO_OUT:
+	case DIO_IN_NP_POS:
+	case DIO_IN_NP_POS_LONG:
+		pin_stat = EASYGPIO_NOPULL;
+		pin_mode = EASYGPIO_INPUT;
+		pin_trig = GPIO_PIN_INTR_POSEDGE;
+		break;
+	case DIO_IN_PU_NEG:
+	case DIO_IN_PU_NEG_LONG:
+		pin_stat = EASYGPIO_PULLUP;
+		pin_mode = EASYGPIO_INPUT;
+		pin_trig = GPIO_PIN_INTR_NEGEDGE;
+		break;
+	case DIO_IN_NP_NEG:
+	case DIO_IN_NP_NEG_LONG:
+		pin_stat = EASYGPIO_NOPULL;
+		pin_mode = EASYGPIO_INPUT;
+		pin_trig = GPIO_PIN_INTR_NEGEDGE;
+		break;
+
+	case DIO_OUT_NOPULL:
+		pin_stat = EASYGPIO_NOPULL;
+		pin_mode = EASYGPIO_OUTPUT;
+		break;
+	case DIO_OUT_PULLUP:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_OUTPUT;
 		break;
 	}
-	
-	MB_DIO_DEBUG("DIO:INIT:1:%d,%d,%d\n", pin, pin_stat, pin_mode);
 	
 	if ((pin >= 0 && pin <=16) && (pin_stat > DIO_NONE && pin_stat <= __DIO_LAST) && (pin_mode == EASYGPIO_INPUT || pin_mode == EASYGPIO_OUTPUT)) {
 		p_cur_work->p_config = p_cur_config;
 		p_cur_work->index = index;
 		rv = easygpio_pinMode(pin, pin_stat, pin_mode);
 		
-		MB_DIO_DEBUG("DIO:INIT:2:%d\n", rv);
-
-		if (pin_mode == EASYGPIO_INPUT) {
-			MB_DIO_DEBUG("DIO:INIT:3:%d\n", rv);
-
-			if (easygpio_attachInterrupt(pin, pin_stat, mb_dio_intr_handler, NULL)) {
-				gpio_pin_intr_state_set(GPIO_ID_PIN(pin), pin_trig);
-				p_cur_work->state_old = 0xff;
+		if (rv) {
+			if (pin_mode == EASYGPIO_INPUT) {
+				if (easygpio_attachInterrupt(pin, pin_stat, mb_dio_intr_handler, NULL)) {
+					gpio_pin_intr_state_set(GPIO_ID_PIN(pin), pin_trig);
+					p_cur_work->state = (p_cur_work->p_config->inverse ? 1 : 0);
+					p_cur_work->state_old = !p_cur_work->state;
+					if (p_cur_config->type >= DIO_IN_NOPULL_LONG && p_cur_config->type <= DIO_IN_NP_NEG_LONG)	// long filter pulse ?
+						p_cur_work->flt_time = MB_DIO_FLT_LONG;
+					else
+						p_cur_work->flt_time = MB_DIO_FLT_TOUT;
+					MB_DIO_DEBUG("DIO:INIT:Index:%d,Gpio:%d,Trig:%d,State:%d,FltTime:%d\n", index, pin, pin_trig, p_cur_work->state, p_cur_work->flt_time);
+				}
+			} else {
+				p_cur_work->timer_run = 0;
 				p_cur_work->state = p_cur_config->init_state;
-				MB_DIO_DEBUG("DIO:INIT:INPUT:%d\n", pin);
+				p_cur_work->state_old = !p_cur_config->init_state;
+				easygpio_outputEnable(pin, p_cur_work->state);
 			}
 		} else {
-			p_cur_work->timer_run = 0;
-			p_cur_work->state = p_cur_config->init_state;
-			p_cur_work->state_old = !p_cur_config->init_state;
-			easygpio_outputEnable(pin, p_cur_work->state);
+			MB_DIO_DEBUG("DIO:INIT_FAILED:Index:%d,Gpio:%d\n", index, pin);
 		}
+		
 	}
 	return rv;
 }
 
-
+/* HW init loop */
 LOCAL void ICACHE_FLASH_ATTR mb_dio_hw_init_all() {
 	int i=0;
 	for (i;i<MB_DIO_ITEMS;i++) {
@@ -299,6 +358,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_hw_init_all() {
 	}
 }
 
+/* REST/JSON handler */
 void ICACHE_FLASH_ATTR mb_dio_handler(
 	struct espconn *pConnection,
 	request_method method,
@@ -313,13 +373,10 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 	int type;
 	char tmp_str[20];
 	
-	bool is_to_store = false;
-	
 	mb_dio_config_t *p_config = p_dio_config;
 	int current_dio_id = -1;
-	bool is_reinit = false;
 	
-	bool is_post = true; // 1=POST CFG, 2=POST command
+	bool is_post = (method == POST); // 1=POST CFG, 2=POST command
 	mb_dio_work_t *p_work = NULL;
 	
 	// post config for INIT
@@ -340,7 +397,6 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].type = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Type:%d\n", current_dio_id, p_config->items[current_dio_id].type);
-						is_reinit = true;
 					}
 				}
 				else if (jsonparse_strcmp_value(&parser, "Gpio") == 0) {
@@ -348,51 +404,58 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].gpio_pin = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Gpio:%d\n", current_dio_id, p_config->items[current_dio_id].gpio_pin);
-						is_reinit = true;
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Init") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].init_state = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Init:%d\n", current_dio_id, p_config->items[current_dio_id].init_state);
-						is_reinit = true;
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Inv") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].inverse = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Inv:%d\n", current_dio_id, p_config->items[current_dio_id].inverse);
-						is_reinit = true;
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Pls_on") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].pls_on = jsonparse_get_value_as_long(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Pls_on:%d\n", current_dio_id, p_config->items[current_dio_id].pls_on);
-						is_reinit = true;
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Pls_off") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].pls_off = jsonparse_get_value_as_long(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Pls_off:%d\n", current_dio_id, p_config->items[current_dio_id].pls_off);
-						is_reinit = true;
+					}
+				} else if (jsonparse_strcmp_value(&parser, "Name") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						jsonparse_copy_value(&parser, p_config->items[current_dio_id].name, MB_VARNAMEMAX);
+						MB_DIO_DEBUG("DIO:CFG:Dio%d.Name:%s\n", current_dio_id, p_config->items[current_dio_id].name);
+					}
+				} else if (jsonparse_strcmp_value(&parser, "Post_type") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						p_config->items[current_dio_id].post_type = jsonparse_get_value_as_int(&parser);
+						MB_DIO_DEBUG("DIO:JSON:Post_type:%d\n", p_config->items[current_dio_id].post_type);
 					}
 				}
 				else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					int tmpisStart = jsonparse_get_value_as_int(&parser);
-					mb_dio_hw_init_all();
 					MB_DIO_DEBUG("DIO:JSON:Started DIO!\n");
 				}
 				else {
-					is_post = false;
+					// SET OUTPUT command (maybe)
 					int cur_id=0;
 					char tmp_str[10];
 					do {
 						os_sprintf(tmp_str, "Output%d", cur_id);
 					} while ((jsonparse_strcmp_value(&parser, tmp_str) != 0) && ++cur_id<MB_DIO_ITEMS);
 					if (cur_id>=0 && cur_id<MB_DIO_ITEMS && dio_work[cur_id].p_config != NULL) {
+						is_post = false;
 						jsonparse_next(&parser);jsonparse_next(&parser);
 						p_work = &dio_work[cur_id];
 						p_work->state_old = p_work->state;
@@ -408,9 +471,12 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 
 			}
 		}
+		
+		if (is_post)
+			mb_dio_hw_init_all();
 	}
 	
-	mb_dio_set_response(response, p_work, is_post);
+	mb_dio_set_response(response, p_work, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
 }
 
 /* Main Initialization file
@@ -432,7 +498,6 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 	
 	if (isStartReading) {
 		mb_dio_hw_init_all();
-		//mb_dht_timer_init(1);
 	}
 }
 

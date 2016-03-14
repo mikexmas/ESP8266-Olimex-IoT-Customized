@@ -95,7 +95,6 @@ void ICACHE_FLASH_ATTR user_config_restore_defaults() {
 	
 	user_configuration.events_websocket = true;
 	user_configuration.events_ssl = false;
-	user_configuration.events_data_post_format = 0x00;
 	
 #if DEVICE == BADGE	
 	os_sprintf(user_configuration.events_server,   USER_CONFIG_DEFAULT_EVENT_SERVER);
@@ -312,10 +311,6 @@ char ICACHE_FLASH_ATTR *user_config_events_name() {
 
 char ICACHE_FLASH_ATTR *user_config_events_token() {
 	return (char *)&user_configuration.events_token;
-}
-
-uint8 ICACHE_FLASH_ATTR user_config_events_post_format() {
-	return user_configuration.events_data_post_format;
 }
 
 #if SSL_ENABLE
@@ -703,12 +698,7 @@ void ICACHE_FLASH_ATTR config_iot_handler(
 					jsonparse_next(&parser);
 					jsonparse_next(&parser);
 					jsonparse_copy_value(&parser, user_configuration.events_token, USER_CONFIG_TOKEN_SIZE);
-				} else if (jsonparse_strcmp_value(&parser, "PostFormat") == 0) {
-					jsonparse_next(&parser);
-					jsonparse_next(&parser);
-					user_configuration.events_data_post_format = jsonparse_get_value_as_int(&parser);
 				}
-				// user_config_events_post_format
 			}
 		}
 		user_config_store(error_str);
@@ -729,8 +719,7 @@ void ICACHE_FLASH_ATTR config_iot_handler(
 				"\"Password\" : \"%s\", "
 				"\"Path\" : \"%s\", "
 				"\"Name\" : \"%s\", "
-				"\"Token\" : \"%s\", "
-				"\"PostFormat\" : %d"
+				"\"Token\" : \"%s\""
 			"}",
 			user_config_events_websocket(),
 			user_config_events_ssl(),
@@ -739,8 +728,7 @@ void ICACHE_FLASH_ATTR config_iot_handler(
 			user_config_events_password(),
 			user_config_events_path(),
 			user_config_events_name(),
-			user_config_events_token(),
-			user_config_events_post_format()
+			user_config_events_token()
 		)
 	);
 }

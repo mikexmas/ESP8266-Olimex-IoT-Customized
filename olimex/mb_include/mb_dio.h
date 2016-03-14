@@ -11,7 +11,8 @@
 		#define MB_DIO_URL      "/dio"
 
 		#define MB_DIO_ITEMS		4		// default DIO items
-		#define MB_DIO_FLT_TOUT		50		// normal TOUT filter time to stabilize input
+		#define MB_DIO_FLT_TOUT		50		// normal TOUT filter time to stabilize input ms
+		#define MB_DIO_FLT_LONG		1000	// normal TOUT filter time to stabilize input 
 
 		void mb_dio_init();
 		
@@ -24,11 +25,19 @@
 			DIO_IN_NP_POS	= 13,		// NO-PULL, up transition trigger
 			DIO_IN_PU_NEG	= 14,		// PULL-UP, down transition trigger
 			DIO_IN_NP_NEG	= 15,		// NO-PULL, down transition trigger
-			__DIO_IN_LAST   = DIO_IN_PULLUP,
+			// LONG filter to determine state
+			DIO_IN_NOPULL_LONG	= 20,		// STD INPUT NO PULL-UP/DOWN, normal UP & DOWN triggering
+			DIO_IN_PULLUP_LONG	= 21,		// STD INPUT PULL-UP, normal UP & DOWN triggering
+			DIO_IN_PU_POS_LONG	= 22,		// PULL-UP, up transition trigger
+			DIO_IN_NP_POS_LONG	= 23,		// NO-PULL, up transition trigger
+			DIO_IN_PU_NEG_LONG	= 24,		// PULL-UP, down transition trigger
+			DIO_IN_NP_NEG_LONG	= 25,		// NO-PULL, down transition trigger			
+			
+			__DIO_IN_LAST   = DIO_IN_NP_NEG_LONG,
 
-			DIO_OUT			= 30,		// OUT NORMAL
-			DIO_OUT_PULSE1	= 31,		// OUT 1 PULSE
-			__DIO_OUT_LAST  = DIO_OUT,
+			DIO_OUT_NOPULL			= 30,		// OUT NOPULLUP
+			DIO_OUT_PULLUP			= 31,		// OUT NOPULLUP
+			__DIO_OUT_LAST  = DIO_OUT_PULLUP,
 			
 			__DIO_LAST      = __DIO_OUT_LAST
 			} mb_dio_type_t;
@@ -39,10 +48,15 @@
 			uint8 init_state;	// out init state
 			uint8 inverse;		// 1= inverse logic of electrical state
 			
-			uint32 pls_on;	// length of the pulse (mseconds)
-			uint32 pls_off;	// length of the pulse OFF(mseconds)
+			uint8 post_type;	// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
+			uint8 free1;
+			uint8 free2;
+			uint8 free3;
 			
-			char name[12];
+			uint32 pls_on;		// length of the pulse (mseconds)
+			uint32 pls_off;		// length of the pulse OFF(mseconds)
+			
+			char name[12];		// 12+ 4 +8 = 24 bytes
 			
 		} mb_dio_config_item_t;
 		
@@ -62,7 +76,7 @@
 			os_timer_t timer;	// filter timer / 
 			uint8 timer_run;
 			uint8 index;		// index in array
-			
+			uint32 flt_time;
 		} mb_dio_work_t;
 		
 		void mb_dio_handler(

@@ -20,7 +20,7 @@
 		typedef struct {
 			uint8 autostart;
 			uint8 each;
-			uint8 free;
+			uint8 post_type;
 			uint8 free1;
 			uint32 refresh;
 			float threshold;

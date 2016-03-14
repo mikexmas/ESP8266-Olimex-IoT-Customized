@@ -106,6 +106,9 @@ bool ICACHE_FLASH_ATTR user_app_config_load(uint32 *p_buffer, uint32 buffer_size
 	}
 	
 	flashSize = (config_head.validandlength & 0x3FF) * 4;
+	
+	if (flashSize < sizeof(user_app_config_data_t))
+		return false;
 		
 	// Load data from flash
 	result = spi_flash_read(MB_APP_CONFIG_START_SECTOR * SPI_FLASH_SEC_SIZE + sizeof(user_app_config_head_t), p_buffer, flashSize);
@@ -114,7 +117,7 @@ bool ICACHE_FLASH_ATTR user_app_config_load(uint32 *p_buffer, uint32 buffer_size
 		debug("APPCONFIG: Load data failed\n\n");
 		return false;
 	}
-
+	
 	// Calculate CRC
 	uint16 crc16_check = crc16((uint8 *)p_buffer, flashSize);
 	

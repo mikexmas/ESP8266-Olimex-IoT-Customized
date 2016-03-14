@@ -14,10 +14,12 @@
 		uint16 crc;
 	} user_app_config_head_t;
 	
+	// be careful to assign enough space
+	// TODO: maybe make conditional space alolocation
 	typedef struct {
-		uint32 adc[32];
+		uint32 adc[16];
 		uint32 dht[32];
-		uint32 ping[32];
+		uint32 ping[16];
 		uint32 dio[32];
 	} user_app_config_data_t;
 	

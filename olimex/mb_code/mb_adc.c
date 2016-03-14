@@ -78,7 +78,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 					"\"Thr\": %s,"
 					"\"ScK\": %s,"
 					"\"ScY\": %s,"
-					"\"Name\": \"%s\""
+					"\"Name\": \"%s\","
+					"\"Post_type\": %d"
 				"}",
 				p_adc_config->autostart,
 				p_adc_config->refresh,
@@ -86,15 +87,17 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 				str_thr,
 				str_sc_k,
 				str_sc_y,
-				p_adc_config->name
+				p_adc_config->name,
+				p_adc_config->post_type
 			)
 		);
 		
 	// event: do we want special format (thingspeak) (
-	} else if (user_config_events_post_format() == USER_CONFIG_EVENTS_FORMAT_THINGSPEAK) {
+	} else if (p_adc_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
-			"{\"api_key\":\"%s\", \"%s\":%s}",
+			"%s{\"api_key\":\"%s\", \"%s\":%s}",
+			MB_POSTTYPE_THINGSPEAK_STR,
 			user_config_events_token(),
 			(os_strlen(p_adc_config->name) == 0 ? "field1" : p_adc_config->name),
 			adc_value_str);
@@ -159,10 +162,11 @@ void ICACHE_FLASH_ATTR mb_adc_handler(
 	char tmp_str[20];
 	
 	mb_adc_config_t *p_config = p_adc_config;
+	bool is_post = (method == POST);
+	int start_cmd = -1;
 
 	if (method == POST && data != NULL && data_len != 0) {
 		jsonparse_setup(&parser, data, data_len);
-
 		while ((type = jsonparse_next(&parser)) != 0) {
 			if (type == JSON_TYPE_PAIR_NAME) {
 				if (jsonparse_strcmp_value(&parser, "Auto") == 0) {
@@ -189,76 +193,22 @@ void ICACHE_FLASH_ATTR mb_adc_handler(
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->scale_y = uhl_jsonparse_get_value_as_float(&parser);
 					MB_ADC_DEBUG("ADC:JSON:ScY:%s\n", uhl_flt2str(tmp_str, p_adc_config->scale_y, 5));
-				} else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
-					jsonparse_next(&parser);jsonparse_next(&parser);
-					int tmpisStart = jsonparse_get_value_as_int(&parser);
-					mb_adc_timer_init(tmpisStart == 1);
-					MB_ADC_DEBUG("ADC:Start:%s\n", (adc_refresh_timer != 0 ? DEVICE_STATUS_OK : DEVICE_STATUS_STOP));
 				} else if (jsonparse_strcmp_value(&parser, "Name") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					jsonparse_copy_value(&parser, p_config->name, MB_VARNAMEMAX);
 					MB_ADC_DEBUG("ADC:JSON:Name:%s\n", p_config->name);
+				} else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					start_cmd = (jsonparse_get_value_as_int(&parser) == 1 ? 1 : 0);
+					MB_ADC_DEBUG("ADC:Start:%d\n", start_cmd);
 				}
-				
-				// float testing
-				else if (jsonparse_strcmp_value(&parser, "Test") == 0) {
-					debug("ADC: TEST\n");
-					char outStr[15];
-
-					char *tmpStr = "-123.456";
-					float tmpFloat = uhl_str2flt(tmpStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST1:%s\n",outStr);
-					
-					tmpStr = " -123.456";
-					tmpFloat = uhl_str2flt(tmpStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST2:%s\n",outStr);
-
-					tmpStr = " 123.456 ";
-					tmpFloat = uhl_str2flt(tmpStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST3:%s\n",outStr);
-
-					tmpStr = " -123.456 ";
-					tmpFloat = uhl_str2flt(tmpStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST4:%s\n",outStr);
-
-				} else if (jsonparse_strcmp_value(&parser, "Float") == 0) {
-					debug("\nFLT TEST\n");
-					char outStr[15];
-
-					char *tmpStr = "";
-					float tmpFloat = 123.456;
-					uhl_flt2str(outStr, tmpFloat, 2);
-					debug("\nADC TEST1a:%s\n",outStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST1b:%s\n",outStr);
-					uhl_flt2str(outStr, tmpFloat, 4);
-					debug("\nADC TEST1c:%s\n",outStr);
-					
-					tmpFloat = -123.456;
-					uhl_flt2str(outStr, tmpFloat, 2);
-					debug("\nADC TEST2a:%s\n",outStr);
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST2b:%s\n",outStr);
-					uhl_flt2str(outStr, tmpFloat, 4);
-					debug("\nADC TEST2c:%s\n",outStr);
-
-					tmpFloat = 0.567;
-					uhl_flt2str(outStr, tmpFloat, 3);
-					debug("\nADC TEST3a:%s\n",outStr);
-					
-					tmpFloat = 0.00567;
-					uhl_flt2str(outStr, tmpFloat, 6);
-					debug("\nADC TEST4:%s\n",outStr);
-				} 
 			}
 		}
+		if (is_post && start_cmd != -1)
+			mb_adc_timer_init(start_cmd == 1);
 	}
 
-	mb_adc_set_response(response, false, true);
+	mb_adc_set_response(response, false, is_post);
 	
 }
 

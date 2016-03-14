@@ -88,6 +88,8 @@ Name_h - name of H field for Thingspeak
 
 This is upgraded original ADC device provided in user folder, but have some improvements.
 
+Be aware that ESP8266 valid voltage ADC range is 0..1 VDC.
+
 URL path: /adc
 
 {"Auto":0, "Refresh": 10000, "Each":5, "Thr": 1.0, "ScK": 1.0, "ScY": 0.0, "Name": "<name>", "Start":1}

@@ -1,10 +1,10 @@
-#ifndef __USER_PING_H__
-	#define __USER_PING_H__
+#ifndef __MB_PING_H__
+	#define __MB_PING_H__
 	
 	#include "mb_main.h"
 			
-	#if PING_ENABLE
-		#define PING_DEBUG 1
+	#if MB_PING_ENABLE
+		#define MB_PING_DEBUG 1
 		
 		void mb_ping_init(bool isStartReading);
 		
@@ -15,7 +15,7 @@
 			uint8 units;		// 0=mm, 1=inch, 2=us
 			uint32 refresh;
 			uint8 each;
-			uint8 free1;
+			uint8 post_type;
 			uint8 free2;
 			uint8 free3;
 			float max_distance;	// in selected units

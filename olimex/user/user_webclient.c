@@ -46,13 +46,13 @@ LOCAL webclient_request ICACHE_FLASH_ATTR *webclient_request_find(char *host, in
 	webclient_request *request;
 	
 #if WEBCLIENT_DEBUG
-#if WEBCLIENT_VERBOSE_OUTPUT
+//#if WEBCLIENT_VERBOSE_OUTPUT
 	uint8 count=0;
 	STAILQ_FOREACH(request, &webclient_requests, entries) {
 		count++;
 	}
 	debug("WEBCLIENT: Requests count %d\n", count);
-#endif
+//#endif
 #endif
 	
 	STAILQ_FOREACH(request, &webclient_requests, entries) {
@@ -451,6 +451,7 @@ LOCAL void ICACHE_FLASH_ATTR webclient_recv(void *arg, char *pData, unsigned sho
 	// Check if header && not chunked
 	if (request->response_state == WEBCLIENT_RESP_STATE_WAITCHUNK) {
 		if ((char *)os_strstr(pData, "0\r\n") == pData) {
+			request->response_state = WEBCLIENT_RESP_STATE_OK;
 			is_close_conn = true;
 		}
 	} else {

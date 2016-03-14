@@ -17,6 +17,10 @@
 
 #include "user_badge.h"
 
+/* MihaB fnc */
+char *mb_events_check_posttype(char *p_data, bool isIot);
+/* MihaB fnc END*/
+
 void ICACHE_FLASH_ATTR user_event_server_error() {
 // TODO - register callbacks to break module/device dependency
 #if DEVICE == BADGE
@@ -170,35 +174,32 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 #endif
 		return;
 	}
-	char *pevent = event;
-	user_event_build(event, url, data);
+
+	// MihaB: SEND to IoT server bare data and not system events
+	char *pdata = data;
+	pdata = mb_events_check_posttype(data, false);
+	// End MihaB
+
+	user_event_build(event, url, pdata);
 	
 	if (url == NULL) {
-		websocket_send_message(EVENTS_URL, data, NULL);
-		long_poll_response(EVENTS_URL, data);
+		websocket_send_message(EVENTS_URL, pdata, NULL);
+		long_poll_response(EVENTS_URL, pdata);
 	} else {
 		// WebSockets
-		websocket_send_message(url, data, NULL);
+		websocket_send_message(url, pdata, NULL);
 		websocket_send_message(EVENTS_URL, event, NULL);
 		
 		// Long Polls
-		long_poll_response(url, data);
+		long_poll_response(url, pdata);
 		long_poll_response(EVENTS_URL, event);
 	}
-	
-	// MihaB: SEND to IoT server bare data and not system events; TODO BETTER handling of forbidden events
-	if (USER_CONFIG_EVENTS_FORMAT_THINGSPEAK == user_config_events_post_format()) {
-		// all system data begins with device; do not make 1st json field Device for Thingspeak server
-		char* ret = (char*)os_strstr(data, "Device");
-		if ((ret != NULL) && (ret - data < 5)) {
-			pevent = (char*)NULL;
-		}
-		else {
-			pevent = data;
-		}
-	}
-	// End MihaB
 
+	// MihaB: SEND to IoT server bare data and not system events; TODO BETTER handling of forbidden events
+	char *pevent = event;
+	pevent = mb_events_check_posttype(data, true);
+	// End MihaB
+	
 	// POST to IoT server
 	if (pevent != NULL) {
 		if (user_config_events_websocket()) {
