@@ -46,13 +46,13 @@ LOCAL webclient_request ICACHE_FLASH_ATTR *webclient_request_find(char *host, in
 	webclient_request *request;
 	
 #if WEBCLIENT_DEBUG
-//#if WEBCLIENT_VERBOSE_OUTPUT
+#if WEBCLIENT_VERBOSE_OUTPUT
 	uint8 count=0;
 	STAILQ_FOREACH(request, &webclient_requests, entries) {
 		count++;
 	}
 	debug("WEBCLIENT: Requests count %d\n", count);
-//#endif
+#endif
 #endif
 	
 	STAILQ_FOREACH(request, &webclient_requests, entries) {
@@ -260,43 +260,43 @@ LOCAL void ICACHE_FLASH_ATTR webclient_error(webclient_request *request, struct 
 		return;
 	}
 	
-		if (
-			request->state != HTTP && 
+	if (
+		request->state != HTTP && 
 		(WEBCLIENT_RETRY_MAX == 0 || request->retry < WEBCLIENT_RETRY_MAX) && 
-			connection->state == ESPCONN_CLOSE
-		) {
-			user_event_server_error();
-			webclient_renew_connection(request);
-			
-			char event[WEBSERVER_MAX_VALUE];
-			user_event_build(event, NULL, "{\"Device\" : \"ESP8266\", \"Status\" : \"WebSocket Reconnect\"}");
-			webclient_new_element(&request->content, event);
-		}
+		connection->state == ESPCONN_CLOSE
+	) {
+		user_event_server_error();
+		webclient_renew_connection(request);
+		
+		char event[WEBSERVER_MAX_VALUE];
+		user_event_build(event, NULL, "{\"Device\" : \"ESP8266\", \"Status\" : \"WebSocket Reconnect\"}");
+		webclient_new_element(&request->content, event);
+	}
 
-		if (wifi_station_get_connect_status() == STATION_GOT_IP) {		
+	if (wifi_station_get_connect_status() == STATION_GOT_IP) {
 		if (WEBCLIENT_RETRY_MAX == 0 || request->retry < WEBCLIENT_RETRY_MAX) {
 			request->retry++;
 #if CONNECTIONS_DEBUG || WEBCLIENT_DEBUG
-				debug("WEBCLIENT: Retry [%d] after [%d] of [%d]\n", request->retry, WEBCLIENT_RETRY_AFTER, WEBCLIENT_RETRY_MAX);
+			debug("WEBCLIENT: Retry [%d] after [%d] of [%d]\n", request->retry, WEBCLIENT_RETRY_AFTER, WEBCLIENT_RETRY_MAX);
 #endif
 			
 			// Prevent previous retry attempt to be fired
 			webclient_reset_timers(request);
 			
-				request->retry_timer = setTimeout(
-					(os_timer_func_t *)webclient_execute, 
-					request, 
-					WEBCLIENT_RETRY_AFTER
-				);
-			} else {
+			request->retry_timer = setTimeout(
+				(os_timer_func_t *)webclient_execute, 
+				request, 
+				WEBCLIENT_RETRY_AFTER
+			);
+		} else {
 #if CONNECTIONS_DEBUG || WEBCLIENT_DEBUG
 			debug("WEBCLIENT: Retry limit reached [%d]\n", request->retry);
 #endif
-				webclient_free_request(request);
-			}
-		} else {
 			webclient_free_request(request);
 		}
+	} else {
+		webclient_free_request(request);
+	}
 }
 
 LOCAL void ICACHE_FLASH_ATTR webclient_timeout(struct espconn *connection) {
@@ -320,10 +320,10 @@ LOCAL void ICACHE_FLASH_ATTR webclient_timeout(struct espconn *connection) {
 #else
 	ret_stat = espconn_disconnect(connection);
 #endif
-
+	
 	if (ret_stat != 0) {
 		webclient_error(request, connection);
-}
+	}
 }
 
 LOCAL void ICACHE_FLASH_ATTR webclient_reconnect(void *arg, sint8 err) {

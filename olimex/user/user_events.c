@@ -17,10 +17,6 @@
 
 #include "user_badge.h"
 
-/* MihaB fnc to determine if we want to send std message or special eg ifttt/thingspeak, ...*/
-char *mb_events_check_posttype(char *p_data, bool isIotEvent);
-/* MihaB fnc END*/
-
 void ICACHE_FLASH_ATTR user_event_server_error() {
 // TODO - register callbacks to break module/device dependency
 #if DEVICE == BADGE
@@ -174,63 +170,51 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 #endif
 		return;
 	}
-
-	// MihaB: SEND to IoT server bare data and not special events
-	char *pdata = data;
-	pdata = mb_events_check_posttype(data, false);
-	// End MihaB
-
-	user_event_build(event, url, pdata);
+	
+	user_event_build(event, url, data);
 	
 	if (url == NULL) {
-		websocket_send_message(EVENTS_URL, pdata, NULL);
-		long_poll_response(EVENTS_URL, pdata);
+		websocket_send_message(EVENTS_URL, data, NULL);
+		long_poll_response(EVENTS_URL, data);
 	} else {
 		// WebSockets
-		websocket_send_message(url, pdata, NULL);
+		websocket_send_message(url, data, NULL);
 		websocket_send_message(EVENTS_URL, event, NULL);
 		
 		// Long Polls
-		long_poll_response(url, pdata);
+		long_poll_response(url, data);
 		long_poll_response(EVENTS_URL, event);
 	}
-
-	// MihaB: SEND to IoT server bare data and not special events;
-	char *pevent = event;
-	pevent = mb_events_check_posttype(data, true);
-	// End MihaB
 	
 	// POST to IoT server
-	if (pevent != NULL) {
-		if (user_config_events_websocket()) {
-			webclient_socket(
-				user_config_events_ssl(),
-				user_config_events_user(),
-				user_config_events_password(),
-				user_config_events_server(),
-				user_config_events_ssl() ?
-					WEBSERVER_SSL_PORT
-					:
-					WEBSERVER_PORT
-				,
-				user_config_events_path(),
-				pevent
-			);
-		} else {
-			webclient_post(
-				user_config_events_ssl(),
-				user_config_events_user(),
-				user_config_events_password(),
-				user_config_events_server(),
-				user_config_events_ssl() ?
-					WEBSERVER_SSL_PORT
-					:
-					WEBSERVER_PORT
-				,
-				user_config_events_path(),
-				pevent
-			);
-		}
+	if (user_config_events_websocket()) {
+		webclient_socket(
+			user_config_events_ssl(),
+			user_config_events_user(),
+			user_config_events_password(),
+			user_config_events_server(),
+			user_config_events_ssl() ?
+				WEBSERVER_SSL_PORT
+				:
+				WEBSERVER_PORT
+			,
+			user_config_events_path(),
+			event
+		);
+	} else {
+		webclient_post(
+			user_config_events_ssl(),
+			user_config_events_user(),
+			user_config_events_password(),
+			user_config_events_server(),
+			user_config_events_ssl() ?
+				WEBSERVER_SSL_PORT
+				:
+				WEBSERVER_PORT
+			,
+			user_config_events_path(),
+			event
+		);
 	}
 	os_free(event);
 }

@@ -148,7 +148,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
 	if (p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK || p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {	// special messaging
 		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
-		user_event_raise(MB_DIO_URL, response);
+		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 	}
 	mb_dio_set_response(response, p_work, MB_REQTYPE_NONE);
 	user_event_raise(MB_DIO_URL, response);
@@ -195,8 +195,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
-			"%s{\"api_key\":\"%s\", \"%s\":%d}",
-			MB_POSTTYPE_THINGSPEAK_STR,
+			"{\"api_key\":\"%s\", \"%s\":%d}",
 			user_config_events_token(),
 			(os_strlen(p_work->p_config->name) == 0 ? "field1" : p_work->p_config->name),
 			p_work->state
@@ -217,8 +216,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		}
 		json_sprintf(
 			response,
-			"%s{\"value1\":\"%s\",\"value2\":\"%d\"}",
-			MB_POSTTYPE_IFTTT_STR,
+			"{\"value1\":\"%s\",\"value2\":\"%d\"}",
 			signal_name,
 			p_work->state
 		);
@@ -490,7 +488,7 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 	p_dio_config = (mb_dio_config_t *)p_user_app_config_data->dio;		// set proper structure in app settings
 		
 	webserver_register_handler_callback(MB_DIO_URL, mb_dio_handler);
-	device_register(NATIVE, 0, MB_DIO_URL, NULL, NULL);
+	device_register(NATIVE, 0, MB_DIO_DEVICE, MB_DIO_URL, NULL, NULL);
 
 	
 	if (!user_app_config_is_config_valid())

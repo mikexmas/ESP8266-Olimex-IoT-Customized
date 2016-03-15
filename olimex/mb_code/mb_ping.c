@@ -119,8 +119,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 	} else if (req_type == MB_REQTYPE_SPECIAL && p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
-			"%s{\"api_key\":\"%s\", \"%s\":%s}",
-			MB_POSTTYPE_THINGSPEAK_STR,
+			"{\"api_key\":\"%s\", \"%s\":%s}",
 			user_config_events_token(),
 			(os_strlen(p_ping_config->name) == 0 ? "field1" : p_ping_config->name),
 			mb_ping_val_str
@@ -134,8 +133,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 			(os_strlen(p_ping_config->name) == 0 ? "PING" : p_ping_config->name));
 		json_sprintf(
 			response,
-			"%s{\"value1\":\"%s\",\"value2\":\"%s\"}",
-			MB_POSTTYPE_IFTTT_STR,
+			"{\"value1\":\"%s\",\"value2\":\"%s\"}",
 			signal_name,
 			mb_ping_val_str
 		);
@@ -183,13 +181,13 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 				if (!mb_event_notified && ((uhl_fabs(p_ping_config->low - p_ping_config->hi) > 0.1f) && (mb_ping_val < p_ping_config->low || mb_ping_val > p_ping_config->hi))) {
 					mb_event_notified = 1;
 					mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
-					user_event_raise(MB_DHT_URL, response);
+					webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 				} else if (mb_event_notified && ((mb_ping_val > p_ping_config->low + p_ping_config->threshold) && (mb_ping_val < p_ping_config->hi -  p_ping_config->threshold))) {		// reset notification with hysteresis
 					mb_event_notified = 0;
 				}
 			} else if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
-				user_event_raise(MB_PING_URL, response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			}
 
 			mb_ping_set_response(response, false, false);
@@ -328,7 +326,7 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 	mb_ping_val_str[0] = 0x00;	// force blank string at start
 	
 	webserver_register_handler_callback(MB_PING_URL, mb_ping_handler);
-	device_register(NATIVE, 0, MB_PING_URL, NULL, NULL);
+	device_register(NATIVE, 0, MB_PING_DEVICE, MB_PING_URL, NULL, NULL);
 	
 	if (!user_app_config_is_config_valid())
 	{

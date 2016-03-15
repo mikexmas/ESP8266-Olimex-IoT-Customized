@@ -99,8 +99,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 	} else if (req_type==MB_REQTYPE_NONE && p_adc_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
-			"%s{\"api_key\":\"%s\", \"%s\":%s}",
-			MB_POSTTYPE_THINGSPEAK_STR,
+			"{\"api_key\":\"%s\", \"%s\":%s}",
 			user_config_events_token(),
 			(os_strlen(p_adc_config->name) == 0 ? "field1" : p_adc_config->name),
 			adc_value_str);
@@ -113,8 +112,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 			(os_strlen(p_adc_config->name) == 0 ? "ADC" : p_adc_config->name));
 		json_sprintf(
 			response,
-			"%s{\"value1\":\"%s\",\"value2\":\"%s\"}",
-			MB_POSTTYPE_IFTTT_STR,
+			"{\"value1\":\"%s\",\"value2\":\"%s\"}",
 			signal_name,
 			adc_value
 		);
@@ -149,14 +147,16 @@ void ICACHE_FLASH_ATTR mb_adc_update() {
 			if (!mb_event_notified && ((uhl_fabs(p_adc_config->low - p_adc_config->hi) > 0.1f) && (adc_value < p_adc_config->low || adc_value > p_adc_config->hi))) {
 				mb_event_notified = 1;
 				mb_adc_set_response(response, false, MB_REQTYPE_SPECIAL);	
-				user_event_raise(MB_DHT_URL, response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			} else if (mb_event_notified && ((adc_value > p_adc_config->low + p_adc_config->threshold) && (adc_value < p_adc_config->hi -  p_adc_config->threshold))) {		// reset notification with hysteresis
 				mb_event_notified = 0;
 			}
+		} else if (p_adc_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+			mb_adc_set_response(response, false, MB_REQTYPE_SPECIAL);	
+			webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 		}
 		
 		mb_adc_set_response(response, false, MB_REQTYPE_NONE);
-		
 		user_event_raise(MB_ADC_URL, response);
 	}
 }
@@ -263,7 +263,7 @@ void ICACHE_FLASH_ATTR mb_adc_init(bool isStartReading) {
 	p_adc_config = (mb_adc_config_t *)p_user_app_config_data->adc;		// set proper structure in app settings
 
 	webserver_register_handler_callback(MB_ADC_URL, mb_adc_handler);
-	device_register(NATIVE, 0, MB_ADC_URL, NULL, NULL);
+	device_register(NATIVE, 0, MB_ADC_DEVICE, MB_ADC_URL, NULL, NULL);
 	
 	if (!user_app_config_is_config_valid())
 	{

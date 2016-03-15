@@ -23,12 +23,6 @@
 	#define MB_POSTTYPE_UNSET		255 		// This is actually default FLASH memory value and meand default posttaype
 	// ... it may be combined/ THINGSPEAK+IFTTT or normal 
 
-	// for strings prefixes 
-	#define MB_POSTTYPE_HEAD_CHAR       'X'		// char prefix that is used in response string to define special formar
-	#define MB_POSTTYPE_HEAD_LEN		5
-	#define MB_POSTTYPE_THINGSPEAK_STR	"X01  "
-	#define MB_POSTTYPE_IFTTT_STR	    "X02  "
-
 	/* Include once here */
 	#include "c_types.h"
 	#include "user_interface.h"

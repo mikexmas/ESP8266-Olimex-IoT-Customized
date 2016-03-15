@@ -134,8 +134,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 	} else if (req_type==MB_REQTYPE_SPECIAL && p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 		json_sprintf(
 			response,
-			"%s{\"api_key\":\"%s\", \"%s\":%s, \"%s\":%s}",
-			MB_POSTTYPE_THINGSPEAK_STR,
+			"{\"api_key\":\"%s\", \"%s\":%s, \"%s\":%s}",
 			user_config_events_token(),
 			(os_strlen(p_dht_config->name_t) == 0 ? "field1" : p_dht_config->name_t),
 			mb_dht_temp_str,
@@ -153,8 +152,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 			);
 		json_sprintf(
 			response,
-			"%s{\"value1\":\"%s\",\"value2\":\"%s\", \"value3\": \"%s\"}",
-			MB_POSTTYPE_IFTTT_STR,
+			"{\"value1\":\"%s\",\"value2\":\"%s\", \"value3\": \"%s\"}",
 			signal_name,
 			mb_dht_temp_str,
 			mb_dht_hum_str
@@ -215,7 +213,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 					) {
 					mb_event_notified = 1;
 					mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
-					user_event_raise(MB_DHT_URL, response);
+					webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 				} else if (mb_event_notified 
 						&& ((mb_dht_temp > p_dht_config->low_t + p_dht_config->threshold_t) && (mb_dht_temp < p_dht_config->hi_t -  p_dht_config->threshold_t)
 							|| (mb_dht_hum > p_dht_config->low_h + p_dht_config->threshold_h) && (mb_dht_hum < p_dht_config->hi_h -  p_dht_config->threshold_h))
@@ -224,7 +222,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 				}
 			} else if (p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
-				user_event_raise(MB_DHT_URL, response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			}
 
 			// Standard event - send anyway,ifttt is additional
@@ -383,7 +381,7 @@ void ICACHE_FLASH_ATTR mb_dht_init(bool isStartReading) {
 	mb_dht_hum_str[0] = 0x00;
 	
 	webserver_register_handler_callback(MB_DHT_URL, mb_dht_handler);
-	device_register(NATIVE, 0, MB_DHT_URL, NULL, NULL);
+	device_register(NATIVE, 0, MB_DHT_DEVICE, MB_DHT_URL, NULL, NULL);
 
 	
 	if (!user_app_config_is_config_valid())
