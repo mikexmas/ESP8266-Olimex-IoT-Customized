@@ -17,8 +17,8 @@
 
 #include "user_badge.h"
 
-/* MihaB fnc */
-char *mb_events_check_posttype(char *p_data, bool isIot);
+/* MihaB fnc to determine if we want to send std message or special eg ifttt/thingspeak, ...*/
+char *mb_events_check_posttype(char *p_data, bool isIotEvent);
 /* MihaB fnc END*/
 
 void ICACHE_FLASH_ATTR user_event_server_error() {
@@ -175,7 +175,7 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 		return;
 	}
 
-	// MihaB: SEND to IoT server bare data and not system events
+	// MihaB: SEND to IoT server bare data and not special events
 	char *pdata = data;
 	pdata = mb_events_check_posttype(data, false);
 	// End MihaB
@@ -195,7 +195,7 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 		long_poll_response(EVENTS_URL, event);
 	}
 
-	// MihaB: SEND to IoT server bare data and not system events; TODO BETTER handling of forbidden events
+	// MihaB: SEND to IoT server bare data and not special events;
 	char *pevent = event;
 	pevent = mb_events_check_posttype(data, true);
 	// End MihaB

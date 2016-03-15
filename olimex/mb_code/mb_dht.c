@@ -65,6 +65,7 @@ LOCAL bool ICACHE_FLASH_ATTR dht_read_from_sensor() {
 	return ret;
 }
 
+// req_type: GET/POST/or SPECIAL=IFTTT/THINGSPEAK
 LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, uint8 req_type) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
@@ -130,7 +131,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 		);
 
 	// event: do we want special format (thingspeak) (
-	} else if (req_type==MB_REQTYPE_NONE && p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+	} else if (req_type==MB_REQTYPE_SPECIAL && p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 		json_sprintf(
 			response,
 			"%s{\"api_key\":\"%s\", \"%s\":%s, \"%s\":%s}",
@@ -221,13 +222,14 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 						) {		// reset notification with hysteresis
 					mb_event_notified = 0;
 				}
+			} else if (p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
+				user_event_raise(MB_DHT_URL, response);
 			}
 
 			// Standard event - send anyway,ifttt is additional
-			// else {
-				mb_dht_set_response(response, false, MB_REQTYPE_NONE);
-				user_event_raise(MB_DHT_URL, response);
-			//}
+			mb_dht_set_response(response, false, MB_REQTYPE_NONE);
+			user_event_raise(MB_DHT_URL, response);
 		}
 	}
 	else {

@@ -116,7 +116,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 		);
 
 	// event: do we want special format (thingspeak) (
-	} else if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
+	} else if (req_type == MB_REQTYPE_SPECIAL && p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
 			"%s{\"api_key\":\"%s\", \"%s\":%s}",
@@ -187,6 +187,9 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 				} else if (mb_event_notified && ((mb_ping_val > p_ping_config->low + p_ping_config->threshold) && (mb_ping_val < p_ping_config->hi -  p_ping_config->threshold))) {		// reset notification with hysteresis
 					mb_event_notified = 0;
 				}
+			} else if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
+				user_event_raise(MB_PING_URL, response);
 			}
 
 			mb_ping_set_response(response, false, false);

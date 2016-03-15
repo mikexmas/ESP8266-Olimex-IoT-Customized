@@ -29,12 +29,12 @@
 LOCAL mb_dio_config_t *p_dio_config = NULL;
 LOCAL mb_dio_work_t dio_work[MB_DIO_ITEMS];
 LOCAL volatile uint32_t dio_all_inputs = 0; // a mask containing all of the initiated interrupt pins
-LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
 // forward declarations
 LOCAL void mb_dio_intr_handler(void *arg);
-LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 reqType);
+LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_type);
 LOCAL void mb_dio_set_output(mb_dio_work_t *p_work);
+LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
 // GPIO interruot timer to determine stabile output
 LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
@@ -146,13 +146,17 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 // Helper to prepare and send rerspone
 LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
+	if (p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK || p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {	// special messaging
+		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
+		user_event_raise(MB_DIO_URL, response);
+	}
 	mb_dio_set_response(response, p_work, MB_REQTYPE_NONE);
 	user_event_raise(MB_DIO_URL, response);
 	return;
 }
 
 // prepare response for event consumer
-LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 reqType) {
+LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_type) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
 	
@@ -161,7 +165,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	MB_DIO_DEBUG("DIO web response preparing.\n");
 	
 	// POST request - status & config only
-	if (reqType == MB_REQTYPE_POST) {
+	if (req_type == MB_REQTYPE_POST) {
 		int i=0;
 		char str_tmp[256];
 		str_tmp[0] = 0x00;
@@ -188,7 +192,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		);
 
 	// event: do we want special format (thingspeak)
-	} else if (reqType==MB_REQTYPE_NONE && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
+	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
 			"%s{\"api_key\":\"%s\", \"%s\":%d}",
@@ -199,7 +203,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		);
 
 	// event: do we want special format (IFTTT): { "value1" : "", "value2" : "", "value3" : "" }
-	} else if (reqType==MB_REQTYPE_NONE && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
+	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
 		char signal_name[20];
 		signal_name[0] = 0x00;
 		if (os_strlen(p_work->p_config->name) == 0) {

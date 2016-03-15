@@ -23,7 +23,7 @@ void ICACHE_FLASH_ATTR mb_main() {
 #endif
 }
 
-LOCAL uint8 mb_events_post_spec_format = 0xff; 		// IOT server: 1=special format needed,0xff unset
+LOCAL uint8 mb_events_post_spec_format = 0xff; 		// If we have IOT server set to thingspeak/ifttt/...: 1=special format needed,0xff unset
 
 // Called from EVENTS before iot posting data (user_event), we allow other types of data eg. thingspeak etc; there is specific format and no other events send to theese services
 char ICACHE_FLASH_ATTR *mb_events_check_posttype(char *p_data, bool isIotEvent) {
@@ -44,10 +44,8 @@ char ICACHE_FLASH_ATTR *mb_events_check_posttype(char *p_data, bool isIotEvent) 
 	}
 	
 	if (p_data[0] == MB_POSTTYPE_HEAD_CHAR) {
-		if (os_strncmp(p_data, MB_POSTTYPE_THINGSPEAK_STR, MB_POSTTYPE_HEAD_LEN) == 0) {
-			ret_val = &p_data[MB_POSTTYPE_HEAD_LEN];
-		}
-		else if (os_strncmp(p_data, MB_POSTTYPE_IFTTT_STR, MB_POSTTYPE_HEAD_LEN) == 0) {
+		if ((os_strncmp(p_data, MB_POSTTYPE_THINGSPEAK_STR, MB_POSTTYPE_HEAD_LEN) == 0)
+				|| (os_strncmp(p_data, MB_POSTTYPE_IFTTT_STR, MB_POSTTYPE_HEAD_LEN) == 0)) {
 			ret_val = &p_data[MB_POSTTYPE_HEAD_LEN];
 		}
 		else {
