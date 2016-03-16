@@ -162,7 +162,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	
 	mb_make_full_device_name(full_device_name, MB_DIO_DEVICE, USER_CONFIG_USER_SIZE);
 	
-	MB_DIO_DEBUG("DIO web response preparing.\n");
+	MB_DIO_DEBUG("DIO web response preparing:req.type:%d\n",req_type);
 	
 	// POST request - status & config only
 	if (req_type == MB_REQTYPE_POST) {

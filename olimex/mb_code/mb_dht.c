@@ -383,7 +383,6 @@ void ICACHE_FLASH_ATTR mb_dht_init(bool isStartReading) {
 	webserver_register_handler_callback(MB_DHT_URL, mb_dht_handler);
 	device_register(NATIVE, 0, MB_DHT_DEVICE, MB_DHT_URL, NULL, NULL);
 
-	
 	if (!user_app_config_is_config_valid())
 	{
 		p_dht_config->autostart = MB_DHT_AUTOSTART;
@@ -403,11 +402,12 @@ void ICACHE_FLASH_ATTR mb_dht_init(bool isStartReading) {
 		p_dht_config->hi_t = 0.0f;
 		p_dht_config->low_h = 0.0f;
 		p_dht_config->hi_h = 0.0f;
-
-		isStartReading = (p_dht_config->autostart == 1);
 		
 		MB_DHT_DEBUG("DHT: init with defaults!");
 	}
+	
+	if (!isStartReading)
+		isStartReading = (p_dht_config->autostart == 1);	
 	
 	if (isStartReading) {
 		dht_init(&mb_dht_sensor, p_dht_config->dht_type, p_dht_config->gpio_pin);

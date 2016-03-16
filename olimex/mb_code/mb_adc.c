@@ -49,7 +49,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 	
 	mb_make_full_device_name(full_device_name, MB_ADC_DEVICE, USER_CONFIG_USER_SIZE);
 	
-	MB_ADC_DEBUG("ADC web response preparing\n");
+	MB_ADC_DEBUG("ADC web response preparing:reqType:%d\n", req_type);
 	
 	// Sensor fault
 	if (is_fault) {
@@ -114,7 +114,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_adc_set_response(char *response, bool is_fault, 
 			response,
 			"{\"value1\":\"%s\",\"value2\":\"%s\"}",
 			signal_name,
-			adc_value
+			adc_value_str
 		);
 
 	// normal event measurement
@@ -133,12 +133,13 @@ void ICACHE_FLASH_ATTR mb_adc_update() {
 	LOCAL float adc_value_old = 0;
 	LOCAL uint8 count = 0;
 	char response[WEBSERVER_MAX_VALUE];
+	char adc_value_old_str[15];
 	
 	mb_adc_read();
 	count++;
 	
 	if (uhl_fabs(adc_value - adc_value_old) > p_adc_config->threshold || (count >= p_adc_config->each)) {
-		MB_ADC_DEBUG("ADC: Change [%d] -> [%d]\n", adc_value_old, adc_value);
+		MB_ADC_DEBUG("ADC: Change [%s] -> [%s]\n", uhl_flt2str(adc_value_old_str, adc_value_old, p_adc_config->decimals), adc_value_str);
 		adc_value_old = adc_value;
 		count = 0;
 		
@@ -239,7 +240,7 @@ void ICACHE_FLASH_ATTR mb_adc_handler(
 					MB_ADC_DEBUG("ADC:JSON:Post_type:%d\n", p_config->post_type);
 				} else if (jsonparse_strcmp_value(&parser, "Dec") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
-					p_config->each = jsonparse_get_value_as_int(&parser);
+					p_config->decimals = jsonparse_get_value_as_int(&parser);
 					MB_ADC_DEBUG("ADC:JSON:Dec:%d\n",p_config->decimals);
 				}
 
