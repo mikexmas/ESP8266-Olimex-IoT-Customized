@@ -186,6 +186,24 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 		long_poll_response(EVENTS_URL, event);
 	}
 	
+	// MihaB: do not post event to special servers (IFTTT/Thingspeak)
+	char *p_iot_server = user_config_events_server();
+	if (p_iot_server != NULL && os_strlen(p_iot_server) > 0) {
+		bool is_special = false;
+		char *p_search = (char *)(os_strstr(p_iot_server, ".thingspeak."));
+		if (p_search != NULL)
+			is_special = true;
+		p_search = (char *)(os_strstr(p_iot_server, ".ifttt."));
+		if (p_search != NULL)
+			is_special = true;
+			
+		if (is_special) {
+			os_free(event);
+			return;
+		}
+	}
+	// End MihaB: do not post event to special servers (IFTTT/Thingspeak)
+	
 	// POST to IoT server
 	if (user_config_events_websocket()) {
 		webclient_socket(
