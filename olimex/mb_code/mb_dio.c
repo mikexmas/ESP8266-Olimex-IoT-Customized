@@ -493,10 +493,17 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 	
 	if (!user_app_config_is_config_valid())
 	{
-		isStartReading = (p_dio_config->autostart == 1);
-		
-		MB_DIO_DEBUG("DIO:Init with defaults!");
+		p_dio_config->autostart = false;
+		int i=0;
+		for (i;i<MB_DIO_ITEMS;i++) {
+			p_dio_config->items[i].gpio_pin = 0xFF;	// make invalid for sure
+		}
+
+		MB_DIO_DEBUG("DIO:Init with defaults, no defaults!");
 	}
+	
+	if (!isStartReading)
+		isStartReading = (p_dio_config->autostart == 1);
 	
 	if (isStartReading) {
 		mb_dio_hw_init_all();

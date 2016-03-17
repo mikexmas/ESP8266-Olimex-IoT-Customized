@@ -340,10 +340,11 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 		p_ping_config->threshold= MB_PING_THRESHOLD_DEFAULT;
 		p_ping_config->offset = MB_PING_OFFSET_DEFAULT;
 		p_ping_config->name[0] = 0x00;;
-
-		isStartReading = (p_ping_config->autostart == 1);
 	}
-	
+
+	if (!isStartReading)
+		isStartReading = (p_ping_config->autostart == 1);
+
 	if (isStartReading) {
 		ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
 		mb_ping_timer_init(true);

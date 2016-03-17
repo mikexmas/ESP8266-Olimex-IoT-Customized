@@ -279,9 +279,10 @@ void ICACHE_FLASH_ATTR mb_adc_init(bool isStartReading) {
 		p_adc_config->post_type = 0;
 		p_adc_config->low = 0.0f;
 		p_adc_config->hi = 0.0f;
-
-		isStartReading = (p_adc_config->autostart == 1);
 	}
+	
+	if (!isStartReading)
+		isStartReading = (p_adc_config->autostart == 1);
 	
 	if (isStartReading) {
 		mb_adc_timer_init(true);
