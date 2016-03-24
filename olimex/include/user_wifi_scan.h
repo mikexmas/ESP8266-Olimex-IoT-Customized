@@ -1,7 +1,7 @@
 #ifndef __USER_WIFI_SCAN_H__
 	#define __USER_WIFI_SCAN_H__
 	
-	#define WIFI_SCAN_DEBUG          1
+	#define WIFI_SCAN_DEBUG          0
 	
 	#define WIFI_SCAN_URL            "/wifi-scan"
 	#define WIFI_SCAN_RESULT_CACHE   30000

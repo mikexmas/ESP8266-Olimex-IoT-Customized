@@ -197,7 +197,11 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 	
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_dht_sensor_fault && mb_dht_temp_str[0] != 0x00 && mb_dht_hum_str[0] != 0x00 && p_dht_config->refresh * errCount < 180) {
-		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t || uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h || (count >= p_dht_config->each)) {
+		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t
+				|| uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h 
+				|| (count >= p_dht_config->each && (uhl_fabs(mb_dht_temp - old_state_t) > 0.01 || uhl_fabs(mb_dht_hum - old_state_h) > 0.01))
+				|| (count >= 0xFF)	// count is 8bits, allways make 
+			) {
 
 			MB_DHT_DEBUG("DHT: Change Temp: [%s] -> [%s], Hum: [%s] -> [%s], Count: [%d]/[%d]\n", uhl_flt2str(tmp_str, old_state_t, 2), mb_dht_temp_str, uhl_flt2str(tmp_str1, old_state_h, 2), mb_dht_hum_str, p_dht_config->each, count);
 

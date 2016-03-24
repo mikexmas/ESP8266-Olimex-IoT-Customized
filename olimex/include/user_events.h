@@ -1,7 +1,7 @@
 #ifndef __USER_EVENTS_H__
 	#define __USER_EVENTS_H__
 	
-	#define EVENTS_DEBUG                1
+	#define EVENTS_DEBUG                0
 	#define EVENTS_VERBOSE_OUTPUT       0
 	
 	#define EVENTS_URL      "/events"
