@@ -169,9 +169,16 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 		errCount++;
 	}
 	
+	// calculate epsilon to determine min change => it depends on number of decimals
+	//uint32 eps_uint = pow_int(10, p_adc_config->decimals);
+	char eps_str[15];
+	float eps = (1/(float)pow_int(10, p_ping_config->decimals));
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_ping_sensor_fault && mb_ping_val_str[0] != 0x00 && p_ping_config->refresh * errCount < 180) {
-		if (uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold || (count >= p_ping_config->each)) {
+		if ((uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold)
+				|| (count >= p_ping_config->each && (uhl_fabs(mb_ping_val - old_state) > eps))
+				|| (count >= 0xFF)
+			) {
 			MB_PING_DEBUG("PING: Change VAL: [%d] -> [%s], Count: [%d]/[%d]\n", (int)old_state, mb_ping_val_str, p_ping_config->each, count);
 			old_state = mb_ping_val;
 			count = 0;
@@ -195,7 +202,6 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 		}
 	}
 	else {
-
 		MB_PING_DEBUG("PING: Sensor fault:%d\n", errCount);
 
 		mb_ping_sensor_fault = true;
