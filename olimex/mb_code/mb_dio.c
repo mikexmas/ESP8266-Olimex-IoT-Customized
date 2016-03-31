@@ -102,7 +102,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_output_timer(mb_dio_work_t *p_work) {
 	if (p_work != NULL && p_work->p_config != NULL) {
 		os_timer_disarm(&p_work->timer);
 		p_work->timer_run = 0;
-		MB_DIO_DEBUG("DIO:OUTPUT_Timer222:Id:%d,State:%d,StateOld:%d\n", p_work->index, p_work->state, p_work->state_old);
+		MB_DIO_DEBUG("DIO:OUTPUT_Timer:Id:%d,State:%d,StateOld:%d\n", p_work->index, p_work->state, p_work->state_old);
 		p_work->state_old = p_work->state;
 		p_work->state = !p_work->state;
 		mb_dio_set_output(p_work);
@@ -343,6 +343,11 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 				p_cur_work->state = p_cur_config->init_state;
 				p_cur_work->state_old = !p_cur_config->init_state;
 				easygpio_outputEnable(pin, p_cur_work->state);
+				if (!p_cur_work->state && p_cur_work->timer_run) {
+					os_timer_disarm(&p_cur_work->timer);
+					p_cur_work->timer_run = false;
+				}
+				mb_dio_set_output(p_cur_work);
 			}
 		} else {
 			MB_DIO_DEBUG("DIO:INIT_FAILED:Index:%d,Gpio:%d\n", index, pin);
@@ -441,13 +446,13 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						p_config->items[current_dio_id].post_type = jsonparse_get_value_as_int(&parser);
-						MB_DIO_DEBUG("DIO:JSON:Post_type:%d\n", p_config->items[current_dio_id].post_type);
+						MB_DIO_DEBUG("DIO:CFG:Post_type:%d\n", p_config->items[current_dio_id].post_type);
 					}
 				}
 				else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					int tmpisStart = jsonparse_get_value_as_int(&parser);
-					MB_DIO_DEBUG("DIO:JSON:Started DIO!\n");
+					MB_DIO_DEBUG("DIO:CFG:Started DIO!\n");
 				}
 				else {
 					// SET OUTPUT command (maybe)
@@ -478,7 +483,13 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 			mb_dio_hw_init_all();
 	}
 	
-	mb_dio_set_response(response, p_work, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
+	// its possible to call this fnc not from webserver => then we should make an event
+	if (pConnection == NULL && response == NULL) {
+		mb_dio_send_state(p_work);
+	}
+	else {
+		mb_dio_set_response(response, p_work, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
+	}
 }
 
 /* Main Initialization file

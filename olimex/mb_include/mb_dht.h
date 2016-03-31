@@ -14,15 +14,18 @@
 			uint8 gpio_pin;
 			uint8 dht_type;		// 0=DHT11, 1=DTH22
 			uint8 units;		// 0=C , 1=F
+
 			// measurement sending parameters
 			uint32 refresh;
+
 			float threshold_t;
 			float threshold_h;
 			float offset_t;
 			float offset_h;
+
 			uint8 each;
 			uint8 post_type;	// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
-			uint8 free2;
+			uint8 action;	// ACTION TYPE: 0x01 = DO (Relay)
 			uint8 free3;		// 4x 7 bytes = 28 bytes
 			
 			char name_t[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK
@@ -45,6 +48,14 @@
 		#define MB_DHT_H_OFFSET_DEFAULT          0		// treshold for H
 		#define MB_DHT_UNITS_DEFAULT             0		// 0=C / 1=F
 
+		#define MB_DHT_ERROR_COUNT				 16		// count till notify error
+		#define MB_DHT_DECIMALS					 1		// number of decimals 
+		
+		#define MB_DHT_EVENT_NOTIFY_INIT		 0		// IFTTT event notify: initial state
+		#define MB_DHT_EVENT_NOTIFY_HI		 	 1		// notified OUT-HI of bounds
+		#define MB_DHT_EVENT_NOTIFY_LOW		 	 2		// notified OUT-LOW of bounds
+		#define MB_DHT_EVENT_NOTIFY_IN		 	 3		// nofified IN bounds
+		
 		#define MB_DHT_DEVICE	"DHT"
 		
 		#define MB_DHT_URL      "/dht"
