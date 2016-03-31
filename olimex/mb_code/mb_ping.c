@@ -171,8 +171,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 	
 	// calculate epsilon to determine min change => it depends on number of decimals
 	//uint32 eps_uint = pow_int(10, p_adc_config->decimals);
-	char eps_str[15];
-	float eps = (1/(float)pow_int(10, p_ping_config->decimals));
+	float eps = 0.01;
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_ping_sensor_fault && mb_ping_val_str[0] != 0x00 && p_ping_config->refresh * errCount < 180) {
 		if ((uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold)
