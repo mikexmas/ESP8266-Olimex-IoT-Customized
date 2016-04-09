@@ -1,4 +1,5 @@
 #include "mb_main.h"
+#include "mb_main.h"
 
 #if MB_PING_ENABLE
 
@@ -30,11 +31,16 @@ LOCAL volatile uint32 ping_timer;
 LOCAL bool mb_ping_sensor_fault = false;
 LOCAL float mb_ping_val;
 // store also float str: -99.99
-LOCAL char mb_ping_val_str[10];
-LOCAL bool mb_event_notified = false;
+LOCAL char mb_ping_val_str[15];
+LOCAL uint8 mb_limits_notified = MB_LIMITS_NOTIFY_INIT;
+LOCAL char *mb_limits_notified_str = (char*)MB_LIMITS_NONE;
 
 LOCAL Ping_Data pingData;
 LOCAL mb_ping_config_t *p_ping_config;
+
+#if MB_ACTIONS_ENABLE
+mb_action_data_t mb_ping_action_data;
+#endif
 
 /* Reading from PING driver */
 LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
@@ -43,29 +49,22 @@ LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
 	
 	if (ping_ping(&pingData, p_ping_config->max_distance, &readVal)) {
 		mb_ping_val = readVal + p_ping_config->offset;
-		char tmp_str[20];
-		uhl_flt2str(tmp_str, mb_ping_val, 2);
-		strncpy_null(mb_ping_val_str, tmp_str, 9);
+		uhl_flt2str(mb_ping_val_str, mb_ping_val, 2);
 		ret = true;
-        MB_PING_DEBUG("PING read OK: VAL: %s\n", mb_ping_val_str);
+        MB_PING_DEBUG("PING:Read OK:VAL:%s\n", mb_ping_val_str);
 	}
 
 	return ret;
 }
 
+/* Make response */
 LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault, uint8 req_type) {
-	char data_str[WEBSERVER_MAX_VALUE];
+	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
 	
 	mb_make_full_device_name(full_device_name, MB_PING_DEVICE, USER_CONFIG_USER_SIZE);
 	
-	MB_PING_DEBUG("PING web response: configured ? %d\n"
-		"    Running: %s\n"
-		"    VAL %s\n", 
-		1,
-		(ping_timer != 0 ? DEVICE_STATUS_OK : DEVICE_STATUS_STOP),
-		mb_ping_val_str
-	);
+	MB_PING_DEBUG("PING:Resp.prep:%d;isFault:%d:\n", req_type, is_fault)
 	
 	// Sensor fault
 	if (is_fault) {
@@ -129,8 +128,9 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 	} else if (req_type == MB_REQTYPE_SPECIAL && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
 		char signal_name[30];
 		signal_name[0] = 0x00;
-		os_sprintf(signal_name, "%s", 
-			(os_strlen(p_ping_config->name) == 0 ? "PING" : p_ping_config->name));
+		os_sprintf(signal_name, "%s[%s]", 
+			(os_strlen(p_ping_config->name) == 0 ? "PING" : p_ping_config->name),
+			mb_limits_notified_str);
 		json_sprintf(
 			response,
 			"{\"value1\":\"%s\",\"value2\":\"%s\"}",
@@ -165,52 +165,77 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 		errCount=0;
 		mb_ping_sensor_fault = false;
 	} else {
-		count++;
 		errCount++;
 	}
 	
-	// calculate epsilon to determine min change => it depends on number of decimals
-	//uint32 eps_uint = pow_int(10, p_adc_config->decimals);
-	//float eps = (1/(float)pow_int(10, 2));
-	float eps = 0.01;
 	// Check if err count; after some time we do not want to have too old value
-	if (!mb_ping_sensor_fault && mb_ping_val_str[0] != 0x00 && p_ping_config->refresh * errCount < 180) {
+	if (!mb_ping_sensor_fault && mb_ping_val_str[0] != 0x00 && p_ping_config->refresh * errCount < MB_PING_ERROR_COUNT * MB_PING_ERROR_COUNT) {
 		if ((uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold)
-				|| (count >= p_ping_config->each && (uhl_fabs(mb_ping_val - old_state) > eps))
+				|| (count >= p_ping_config->each && (uhl_fabs(mb_ping_val - old_state) > 0.1))
 				|| (count >= 0xFF)
 			) {
-			MB_PING_DEBUG("PING: Change VAL: [%d] -> [%s], Count: [%d]/[%d]\n", (int)old_state, mb_ping_val_str, p_ping_config->each, count);
+			MB_PING_DEBUG("PING:Change:[%d]->[%s],Count:[%d]/[%d]\n", (int)old_state, mb_ping_val_str, p_ping_config->each, count);
 			old_state = mb_ping_val;
 			count = 0;
 			
+			// Evaluate limits in some cases; we need later for eg IFTTT / internal action
+			uint8 eval_val = 0x00;
+			uint8 tmp_limits_notified;
+			bool make_event = false;
 			// Special handling; notify once only when limit exceeded
-			if (p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-				if (!mb_event_notified && ((uhl_fabs(p_ping_config->low - p_ping_config->hi) > 0.1f) && (mb_ping_val < p_ping_config->low || mb_ping_val > p_ping_config->hi))) {
-					mb_event_notified = 1;
-					mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
-					webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
-				} else if (mb_event_notified && ((mb_ping_val > p_ping_config->low + p_ping_config->threshold) && (mb_ping_val < p_ping_config->hi -  p_ping_config->threshold))) {		// reset notification with hysteresis
-					mb_event_notified = 0;
+			if (p_ping_config->post_type == MB_POSTTYPE_IFTTT
+#if MB_ACTIONS_ENABLE
+				|| p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST
+#endif
+				) {	// IFTTT limits check; make hysteresis to reset flag
+				eval_val = uhl_which_event(mb_ping_val, p_ping_config->hi, p_ping_config->low, p_ping_config->threshold, &mb_limits_notified_str);
+				tmp_limits_notified = eval_val;
+				make_event = false;
+				
+				if (mb_limits_notified != tmp_limits_notified && tmp_limits_notified != MB_LIMITS_NOTIFY_INIT)		// T
+				{
+					make_event = true;
+					mb_limits_notified = tmp_limits_notified;
 				}
+				
+				MB_PING_DEBUG("PING:Eval:%d,Notif:%d,Notif_str:%s,Make:%d\n",eval_val, mb_limits_notified, mb_limits_notified_str, make_event);
+
+				if (make_event && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
+					mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
+					webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+				}
+
+#if MB_ACTIONS_ENABLE			
+			if (make_event && p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST) {	// ACTION: DIO
+				mb_ping_action_data.action_type = p_ping_config->action;
+				if (mb_limits_notified == MB_LIMITS_NOTIFY_HI || mb_limits_notified == MB_LIMITS_NOTIFY_LOW)
+					mb_ping_action_data.value = 1;
+				else 
+					mb_ping_action_data.value = 0;
+				setTimeout(mb_action_post,  &mb_ping_action_data, 10);
+			}
+#endif
+
 			} else if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			}
 
-			mb_ping_set_response(response, false, false);
+			mb_ping_set_response(response, false, MB_REQTYPE_NONE);
 			user_event_raise(MB_PING_URL, response);
 		}
-	}
-	else {
-		MB_PING_DEBUG("PING: Sensor fault:%d\n", errCount);
-
+	} else if (!mb_ping_sensor_fault && p_ping_config->refresh * errCount >= MB_PING_ERROR_COUNT *1000) {	// first time only sensor fault: send notification
+		MB_PING_DEBUG("PING:Sensor fault:%d\n", errCount);
 		mb_ping_sensor_fault = true;
 		mb_ping_val_str[0] = 0x0;
-		if (count >= p_ping_config->each*10) {
-			count = 0;
-			mb_ping_set_response(response, true, false);
-			user_event_raise(MB_PING_URL, response);
-		}
+		old_state = -999.99;		// set to enable instant sending
+		errCount = 0;
+		mb_ping_set_response(response, true, MB_REQTYPE_NONE);
+		user_event_raise(MB_PING_URL, response);
+	} else if (mb_ping_sensor_fault && errCount >= 0xff) {		// notify sensor fault occasionally on 255x read
+		errCount = 0;
+		mb_ping_set_response(response, true, MB_REQTYPE_NONE);
+		user_event_raise(MB_PING_URL, response);
 	}
 }
 
@@ -221,11 +246,14 @@ void ICACHE_FLASH_ATTR mb_ping_timer_init(bool start_cmd){
 	}
 	
 	if (p_ping_config->refresh == 0 || !start_cmd) {
-		MB_PING_DEBUG("PING Timer not start!\n");
+		MB_PING_DEBUG("PING:TimerStopped:\n");
 		ping_timer = 0;
 	} else {
-		MB_PING_DEBUG("PING setInterval: %d\n", p_ping_config->refresh);
+		MB_PING_DEBUG("PING:Timer:Started:%d\n", p_ping_config->refresh);
 		ping_timer = setInterval(ping_timer_update, NULL, p_ping_config->refresh*1000);
+		mb_limits_notified = MB_LIMITS_NOTIFY_INIT;		// IFTTT notification flag reset
+		mb_limits_notified_str = (char*)MB_LIMITS_NONE;
+		ping_timer_update();									// instant measurement, otherwised we have to wait timer elapsed
 	}
 }
 
@@ -255,60 +283,64 @@ void ICACHE_FLASH_ATTR mb_ping_handler(
 				if (jsonparse_strcmp_value(&parser, "Auto") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->autostart = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Auto:%d\n",p_config->autostart);
+					MB_PING_DEBUG("PING:CFG:Auto:%d\n",p_config->autostart);
 				} else if (jsonparse_strcmp_value(&parser, "Trig_pin") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->trigger_pin = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Trig_pin:%d\n", p_config->trigger_pin);
+					MB_PING_DEBUG("PING:CFG:Trig_pin:%d\n", p_config->trigger_pin);
 				} else if (jsonparse_strcmp_value(&parser, "Echo_pin") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->echo_pin = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Echo_pin:%d\n", p_config->echo_pin);
+					MB_PING_DEBUG("PING:CFG:Echo_pin:%d\n", p_config->echo_pin);
 				} else if (jsonparse_strcmp_value(&parser, "Units") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->units = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Units:%d\n", p_config->units);
+					MB_PING_DEBUG("PING:CFG:Units:%d\n", p_config->units);
 				} else if (jsonparse_strcmp_value(&parser, "Refresh") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->refresh = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Refresh:%d\n", p_config->refresh);
+					MB_PING_DEBUG("PING:CFG:Refresh:%d\n", p_config->refresh);
 				} else if (jsonparse_strcmp_value(&parser, "Each") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->each = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Each: %d\n", p_config->each);
+					MB_PING_DEBUG("PING:CFG:Each: %d\n", p_config->each);
 				} else if (jsonparse_strcmp_value(&parser, "Max_dist") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->max_distance = uhl_jsonparse_get_value_as_float(&parser);
-					MB_PING_DEBUG("PING:JSON:Max_dist:%s\n", uhl_flt2str(tmp_str, p_ping_config->max_distance, 2));
+					MB_PING_DEBUG("PING:CFG:Max_dist:%s\n", uhl_flt2str(tmp_str, p_ping_config->max_distance, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Thr") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->threshold = uhl_jsonparse_get_value_as_float(&parser);
-					MB_PING_DEBUG("PING:JSON:Thr:%s\n", uhl_flt2str(tmp_str, p_ping_config->threshold, 2));
+					MB_PING_DEBUG("PING:CFG:Thr:%s\n", uhl_flt2str(tmp_str, p_ping_config->threshold, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Ofs") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->offset = uhl_jsonparse_get_value_as_float(&parser);
-					MB_PING_DEBUG("PING:JSON:Ofs:%s\n", uhl_flt2str(tmp_str, p_ping_config->offset, 2));
+					MB_PING_DEBUG("PING:CFG:Ofs:%s\n", uhl_flt2str(tmp_str, p_ping_config->offset, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Name") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					jsonparse_copy_value(&parser, p_config->name, MB_VARNAMEMAX);
-					MB_PING_DEBUG("PING:JSON:Name:%s\n", p_config->name);
+					MB_PING_DEBUG("PING:CFG:Name:%s\n", p_config->name);
 				} else if (jsonparse_strcmp_value(&parser, "Post_type") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->post_type = jsonparse_get_value_as_int(&parser);
-					MB_PING_DEBUG("PING:JSON:Post_type:%d\n", p_config->post_type);
+					MB_PING_DEBUG("PING:CFG:Post_type:%d\n", p_config->post_type);
+				} else if (jsonparse_strcmp_value(&parser, "Action") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					p_config->action = jsonparse_get_value_as_int(&parser);
+					MB_PING_DEBUG("PING:CFG:Action:%d\n", p_config->action);
 				} else if (jsonparse_strcmp_value(&parser, "Low") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->low = uhl_jsonparse_get_value_as_float(&parser);
-					MB_PING_DEBUG("PING:JSON:Low:%s\n", uhl_flt2str(tmp_str, p_config->low, 2));
+					MB_PING_DEBUG("PING:CFG:Low:%s\n", uhl_flt2str(tmp_str, p_config->low, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Hi") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					p_config->hi = uhl_jsonparse_get_value_as_float(&parser);
-					MB_PING_DEBUG("PING:JSON:Hi:%s\n", uhl_flt2str(tmp_str, p_config->hi, 2));
+					MB_PING_DEBUG("PING:CFG:Hi:%s\n", uhl_flt2str(tmp_str, p_config->hi, 2));
 				} else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					start_cmd = (jsonparse_get_value_as_int(&parser) == 1 ? 1 : 0);
-					mb_event_notified = false;
-					MB_PING_DEBUG("PING:JSON:Start:%d\n", start_cmd);
+					mb_limits_notified = false;
+					MB_PING_DEBUG("PING:CFG:Start:%d\n", start_cmd);
 				}
 			}
 		}
@@ -320,7 +352,7 @@ void ICACHE_FLASH_ATTR mb_ping_handler(
 		}
 	}
 	
-	mb_ping_set_response(response, false, is_post);
+	mb_ping_set_response(response, false, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
 }
 
 /* Main Initialization file
@@ -345,7 +377,9 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 		p_ping_config->max_distance= MB_PING_MAXDISTANCE_DEFAULT;
 		p_ping_config->threshold= MB_PING_THRESHOLD_DEFAULT;
 		p_ping_config->offset = MB_PING_OFFSET_DEFAULT;
-		p_ping_config->name[0] = 0x00;;
+		p_ping_config->name[0] = 0x00;
+		p_ping_config->post_type = MB_POSTTYPE_DEFAULT;
+		p_ping_config->action = MB_ACTIONTYPE_NONE;
 	}
 
 	if (!isStartReading)

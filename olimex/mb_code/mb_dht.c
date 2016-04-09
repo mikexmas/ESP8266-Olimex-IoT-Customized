@@ -37,10 +37,10 @@ const char MB_DHT_LIMITS_H_IN[] = "H-IN";
 
 LOCAL volatile uint32 dht_timer;
 LOCAL bool mb_dht_sensor_fault = false;
-LOCAL uint32 mb_event_notified_t = MB_DHT_EVENT_NOTIFY_INIT;
-LOCAL uint32 mb_event_notified_h = MB_DHT_EVENT_NOTIFY_INIT;
-LOCAL char *mb_event_notified_t_str = (char*)MB_DHT_LIMITS_NONE;
-LOCAL char *mb_event_notified_h_str = (char*)MB_DHT_LIMITS_NONE;
+LOCAL uint32 mb_limits_notified_t = MB_LIMITS_NOTIFY_INIT;
+LOCAL uint32 mb_limits_notified_h = MB_LIMITS_NOTIFY_INIT;
+LOCAL char *mb_limits_notified_t_str = (char*)MB_DHT_LIMITS_NONE;
+LOCAL char *mb_limits_notified_h_str = (char*)MB_DHT_LIMITS_NONE;
 LOCAL float mb_dht_temp, mb_dht_hum;
 // store also float str: -99.99
 LOCAL char mb_dht_temp_str[10];
@@ -91,26 +91,26 @@ LOCAL uint8 ICACHE_FLASH_ATTR mb_dht_which_event(char **p_str_t, char **p_str_h)
 	// T
 	if (uhl_fabs(p_dht_config->low_t - p_dht_config->hi_t) > 1.0) {
 		if (mb_dht_temp > p_dht_config->hi_t) {
-			ret = MB_DHT_EVENT_NOTIFY_HI;
+			ret = MB_LIMITS_NOTIFY_HI;
 			*p_str_t = (char*)MB_DHT_LIMITS_T_HI;
 		} else if (mb_dht_temp < p_dht_config->low_t) {
-			ret = MB_DHT_EVENT_NOTIFY_LOW;
+			ret = MB_LIMITS_NOTIFY_LOW;
 			*p_str_t = (char*)MB_DHT_LIMITS_T_LOW;
 		} else if ((mb_dht_temp > p_dht_config->low_t + p_dht_config->threshold_t) && (mb_dht_temp < p_dht_config->hi_t -  p_dht_config->threshold_t)) {
-			ret = MB_DHT_EVENT_NOTIFY_IN;
+			ret = MB_LIMITS_NOTIFY_IN;
 			*p_str_t = (char*)MB_DHT_LIMITS_T_IN;
 		}
 	}
 	// H
 	if (uhl_fabs(p_dht_config->low_h - p_dht_config->hi_h) > 1.0) {
 		if (mb_dht_hum > p_dht_config->hi_h) {
-			ret = MB_DHT_EVENT_NOTIFY_HI << 4 & ret;
+			ret = MB_LIMITS_NOTIFY_HI << 4 & ret;
 			*p_str_h = (char*)MB_DHT_LIMITS_H_HI;
 		} else if (mb_dht_hum < p_dht_config->low_h) {
-			ret = MB_DHT_EVENT_NOTIFY_LOW << 4 & ret;
+			ret = MB_LIMITS_NOTIFY_LOW << 4 & ret;
 			*p_str_h = (char*)MB_DHT_LIMITS_H_LOW;
 		} else if ((mb_dht_hum > p_dht_config->low_h + p_dht_config->threshold_h) && (mb_dht_hum < p_dht_config->hi_h -  p_dht_config->threshold_h)) {
-			ret = MB_DHT_EVENT_NOTIFY_IN << 4 & ret;
+			ret = MB_LIMITS_NOTIFY_IN << 4 & ret;
 			*p_str_h = (char*)MB_DHT_LIMITS_H_IN;
 		}
 	}
@@ -203,9 +203,9 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 		signal_name[0] = 0x00;
 		os_sprintf(signal_name, "%s[%s]/%s[%s]",
 			(os_strlen(p_dht_config->name_t) == 0 ? "T" : p_dht_config->name_t),
-			mb_event_notified_t_str,
+			mb_limits_notified_t_str,
 			(os_strlen(p_dht_config->name_h) == 0 ? "H" : p_dht_config->name_h),
-			mb_event_notified_h_str);
+			mb_limits_notified_h_str);
 		json_sprintf(
 			response,
 			"{\"value1\":\"%s\",\"value2\":\"%s\", \"value3\": \"%s\"}",
@@ -274,25 +274,25 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 					|| p_dht_config->action >= MB_ACTIONTYPE_FIRST && p_dht_config->action <= MB_ACTIONTYPE_LAST
 #endif
 				) {
-				eval_val = mb_dht_which_event(&mb_event_notified_t_str, &mb_event_notified_h_str);
+				eval_val = mb_dht_which_event(&mb_limits_notified_t_str, &mb_limits_notified_h_str);
 				tmp_event_notified_t = eval_val & 0x0F;
 				tmp_event_notified_h = eval_val & 0xF0 >> 4;
 				make_event = false;
 				
-				if (mb_event_notified_t != tmp_event_notified_t && tmp_event_notified_t != MB_DHT_EVENT_NOTIFY_INIT)		// T
+				if (mb_limits_notified_t != tmp_event_notified_t && tmp_event_notified_t != MB_LIMITS_NOTIFY_INIT)		// T
 				{
 					make_event = true;
-					mb_event_notified_t = tmp_event_notified_t;
+					mb_limits_notified_t = tmp_event_notified_t;
 				}
 				
-				if (mb_event_notified_h != tmp_event_notified_h && tmp_event_notified_h != MB_DHT_EVENT_NOTIFY_INIT) 		// H
+				if (mb_limits_notified_h != tmp_event_notified_h && tmp_event_notified_h != MB_LIMITS_NOTIFY_INIT) 		// H
 				{
 					make_event = true;
-					mb_event_notified_h = tmp_event_notified_h;
+					mb_limits_notified_h = tmp_event_notified_h;
 				}
 			}
 			
-			MB_DHT_DEBUG("DHT:Eval:%d,Notif_T:%d,Notif_T_str:%s,Notif_H:%d,Notif_H_str:%s,Make:%d\n",eval_val, mb_event_notified_t, mb_event_notified_t_str, mb_event_notified_h, mb_event_notified_h_str, make_event);
+			MB_DHT_DEBUG("DHT:Eval:%d,Notif_T:%d,Notif_T_str:%s,Notif_H:%d,Notif_H_str:%s,Make:%d\n",eval_val, mb_limits_notified_t, mb_limits_notified_t_str, mb_limits_notified_h, mb_limits_notified_h_str, make_event);
 			
 			// Special handling; notify once only when limit exceeded
 			if (make_event && p_dht_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
@@ -302,8 +302,8 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 #if MB_ACTIONS_ENABLE			
 			if (make_event && p_dht_config->action >= MB_ACTIONTYPE_FIRST && p_dht_config->action <= MB_ACTIONTYPE_LAST) {	// ACTION: DIO
 				mb_dht_action_data.action_type = p_dht_config->action;
-				if (mb_event_notified_t == MB_DHT_EVENT_NOTIFY_HI || mb_event_notified_t == MB_DHT_EVENT_NOTIFY_LOW
-						|| mb_event_notified_h == MB_DHT_EVENT_NOTIFY_HI || mb_event_notified_h == MB_DHT_EVENT_NOTIFY_LOW)
+				if (mb_limits_notified_t == MB_LIMITS_NOTIFY_HI || mb_limits_notified_t == MB_LIMITS_NOTIFY_LOW
+						|| mb_limits_notified_h == MB_LIMITS_NOTIFY_HI || mb_limits_notified_h == MB_LIMITS_NOTIFY_LOW)
 					mb_dht_action_data.value = 1;
 				else 
 					mb_dht_action_data.value = 0;
@@ -350,10 +350,10 @@ void ICACHE_FLASH_ATTR mb_dht_timer_init(bool start_cmd) {
 		MB_DHT_DEBUG("DHT:Timer:Started:%d\n", p_dht_config->refresh);
 		dht_timer = setInterval(dht_timer_update, NULL, p_dht_config->refresh*1000);
 		
-		mb_event_notified_t = MB_DHT_EVENT_NOTIFY_INIT;		// IFTTT notification flag reset
-		mb_event_notified_h = MB_DHT_EVENT_NOTIFY_INIT;		// IFTTT notification flag reset
-		mb_event_notified_t_str = (char*)MB_DHT_LIMITS_NONE;
-		mb_event_notified_h_str = (char*)MB_DHT_LIMITS_NONE;
+		mb_limits_notified_t = MB_LIMITS_NOTIFY_INIT;		// IFTTT notification flag reset
+		mb_limits_notified_h = MB_LIMITS_NOTIFY_INIT;		// IFTTT notification flag reset
+		mb_limits_notified_t_str = (char*)MB_DHT_LIMITS_NONE;
+		mb_limits_notified_h_str = (char*)MB_DHT_LIMITS_NONE;
 		dht_timer_update();									// instant measurement, otherwised we have to wait timer elapsed
 	}
 }

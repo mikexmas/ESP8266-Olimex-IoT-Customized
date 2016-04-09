@@ -383,7 +383,8 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 	mb_dio_config_t *p_config = p_dio_config;
 	int current_dio_id = -1;
 	
-	bool is_post = (method == POST); // 1=POST CFG, 2=POST command
+	bool is_post = (method == POST);
+	bool is_post_cfg = false;	// do we actually received cfg (to make config)
 	mb_dio_work_t *p_work = NULL;
 	
 	// post config for INIT
@@ -402,6 +403,7 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 				} else if (jsonparse_strcmp_value(&parser, "Type") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].type = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Type:%d\n", current_dio_id, p_config->items[current_dio_id].type);
 					}
@@ -409,42 +411,49 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 				else if (jsonparse_strcmp_value(&parser, "Gpio") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].gpio_pin = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Gpio:%d\n", current_dio_id, p_config->items[current_dio_id].gpio_pin);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Init") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].init_state = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Init:%d\n", current_dio_id, p_config->items[current_dio_id].init_state);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Inv") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].inverse = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Inv:%d\n", current_dio_id, p_config->items[current_dio_id].inverse);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Pls_on") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].pls_on = jsonparse_get_value_as_long(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Pls_on:%d\n", current_dio_id, p_config->items[current_dio_id].pls_on);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Pls_off") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].pls_off = jsonparse_get_value_as_long(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Pls_off:%d\n", current_dio_id, p_config->items[current_dio_id].pls_off);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Name") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						jsonparse_copy_value(&parser, p_config->items[current_dio_id].name, MB_VARNAMEMAX);
 						MB_DIO_DEBUG("DIO:CFG:Dio%d.Name:%s\n", current_dio_id, p_config->items[current_dio_id].name);
 					}
 				} else if (jsonparse_strcmp_value(&parser, "Post_type") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
 						p_config->items[current_dio_id].post_type = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Post_type:%d\n", p_config->items[current_dio_id].post_type);
 					}
@@ -472,14 +481,14 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 							p_work->timer_run = false;
 						}
 						mb_dio_set_output(p_work);
-						MB_DIO_DEBUG("DIO:CFG:DIO%d.Dout:%d\n", cur_id, p_work->state);
+						MB_DIO_DEBUG("DIO:CMD:DIO%d.Dout:%d\n", cur_id, p_work->state);
 					}
 				}
-
 			}
 		}
-		
-		if (is_post)
+
+		// make config only when cfg command received
+		if (is_post && is_post_cfg)
 			mb_dio_hw_init_all();
 	}
 	

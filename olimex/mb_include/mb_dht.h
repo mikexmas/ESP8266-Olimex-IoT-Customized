@@ -51,11 +51,6 @@
 		#define MB_DHT_ERROR_COUNT				 16		// count till notify error
 		#define MB_DHT_DECIMALS					 1		// number of decimals 
 		
-		#define MB_DHT_EVENT_NOTIFY_INIT		 0		// IFTTT event notify: initial state
-		#define MB_DHT_EVENT_NOTIFY_HI		 	 1		// notified OUT-HI of bounds
-		#define MB_DHT_EVENT_NOTIFY_LOW		 	 2		// notified OUT-LOW of bounds
-		#define MB_DHT_EVENT_NOTIFY_IN		 	 3		// nofified IN bounds
-		
 		#define MB_DHT_DEVICE	"DHT"
 		
 		#define MB_DHT_URL      "/dht"

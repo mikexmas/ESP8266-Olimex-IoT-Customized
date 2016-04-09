@@ -1,1 +1,5 @@
 .output/
+*.S
+*.dump
+/bin/*.dump
+/bin/*.S

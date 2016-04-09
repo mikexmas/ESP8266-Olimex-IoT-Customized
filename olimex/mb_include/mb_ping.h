@@ -16,7 +16,7 @@
 			uint32 refresh;
 			uint8 each;
 			uint8 post_type;
-			uint8 free2;
+			uint8 action;	// ACTION TYPE: 0x01 = DO (Relay)
 			uint8 free3;
 			float max_distance;	// in selected units
 			float threshold;
@@ -35,6 +35,8 @@
 		#define MB_PING_MAXDISTANCE_DEFAULT      4000.0f	// max.distance (about 4 meters)
 		#define MB_PING_THRESHOLD_DEFAULT        1.0f	// treshold 
 		#define MB_PING_OFFSET_DEFAULT       	 0.0f	// offset
+		
+		#define MB_PING_ERROR_COUNT				 16		// count till notify error
 		
 		#define MB_PING_DEVICE	"PING"
 		

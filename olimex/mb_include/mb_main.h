@@ -34,7 +34,7 @@
 	#define MB_ACTIONTYPE_DIO_LAST	MB_ACTIONTYPE_DIO_3
 	
 	#define MB_ACTIONTYPE_LAST		MB_ACTIONTYPE_DIO_LAST
-
+	
 	/* Include once here */
 	#include "c_types.h"
 	#include "user_interface.h"
@@ -58,6 +58,7 @@
 	} mb_action_data_t;
 	
 	void mb_action_post(mb_action_data_t *p_act_data);
-#endif
 	
+#endif
+
 #endif

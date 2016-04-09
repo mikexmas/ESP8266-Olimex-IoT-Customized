@@ -6,6 +6,14 @@
 #include "user_misc.h"
 #include "user_json.h"
 
+#include "mb_helper_library.h"
+
+// OUT, HI, LOW, IN
+const char MB_LIMITS_NONE[] = "";
+const char MB_LIMITS_HI[] = "HI";
+const char MB_LIMITS_LOW[] = "LOW";
+const char MB_LIMITS_IN[] = "IN";
+
 float ICACHE_FLASH_ATTR uhl_convert_c_to_f(float val_c) {
 	return val_c * 1.8 + 32;
 }
@@ -211,4 +219,25 @@ int ICACHE_FLASH_ATTR jsonparse_get_value_as_float(struct jsonparse_state *parse
 		return -jsonparse_get_value_as_int(parser);
 	}
 	return jsonparse_get_value_as_int(parser);
+}
+
+/* Evaluate if and which event triggered IFTTT: OUT, HI, LOW, IN */
+// ret: 0 nothing, 0x01=THI, 0x02= TLOW, IN=0x03, H=0x10....
+uint8 ICACHE_FLASH_ATTR uhl_which_event(float val, float hi, float low, float thr, char **p_str) {
+	uint8 ret = 0x00;
+
+	*p_str = (char*)MB_LIMITS_NONE;	
+	if (uhl_fabs(low - hi) > 1.0) {
+		if (val > hi) {
+			ret = MB_LIMITS_NOTIFY_HI;
+			*p_str = (char*)MB_LIMITS_HI;
+		} else if (val < low) {
+			ret = MB_LIMITS_NOTIFY_LOW;
+			*p_str = (char*)MB_LIMITS_LOW;
+		} else if ((val > low + thr) && (val < hi -  thr)) {
+			ret = MB_LIMITS_NOTIFY_IN;
+			*p_str = (char*)MB_LIMITS_IN;
+		}
+	}
+	return ret;
 }

@@ -7,7 +7,16 @@
 	#define DEVICE_STATUS_FAULT		"FAULT"		// FAULT (sensor FAULT)
 	#define DEVICE_STATUS_STOP		"STOP"		// OK but no reading (stopped by user or not started)
 	#define DEVICE_STATUS_ERROR		"ERROR"		// ERROR, eg. np valid configuration
+	
+	#define MB_LIMITS_NOTIFY_INIT		 0		// IFTTT event notify: initial state
+	#define MB_LIMITS_NOTIFY_HI		 	 1		// notified OUT-HI of bounds
+	#define MB_LIMITS_NOTIFY_LOW		 2		// notified OUT-LOW of bounds
+	#define MB_LIMITS_NOTIFY_IN		 	 3		// nofified IN bounds
 
+	extern const char MB_LIMITS_NONE[];
+	extern const char MB_LIMITS_HI[];
+	extern const char MB_LIMITS_LOW[];
+	extern const char MB_LIMITS_IN[];
 	
 	float uhl_convert_c_to_f(float val_c);
 
@@ -27,5 +36,7 @@
 	void mb_make_full_device_name(char *p_dest, char *p_str, int maxlen);
 	
 	int mb_jsonparse_sint_str(struct jsonparse_state *parser);
+	
+	uint8 uhl_which_event(float val, float hi, float low, float thr, char **p_str);
 
 #endif
