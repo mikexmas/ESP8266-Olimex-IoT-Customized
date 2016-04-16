@@ -464,6 +464,9 @@
 						
 						if ($this.is('.long-poll')) {
 							$this.find('input[name=Event]').val(data.Device);
+							console.log(JSON.stringify(data));
+							var newIL = "<li>" + JSON.stringify(data) + "</li>";
+							$("ul#loggerList").append(newIL);
 						}
 						
 						if ($this.is('.esp:not(.long-poll)')) {
@@ -544,7 +547,7 @@
 				}
 				
 				function commandSuccess(data, status, xhr) {
-					// console.log('success(%s)', baseURL + $this.attr('action'));
+					//console.log('success(%s)', baseURL + $this.attr('action'));
 					if (typeof data.Error != 'undefined') {
 						$status.message(data.Device+': '+data.Error, 'error');
 						return;
@@ -888,7 +891,7 @@
 		},
 		
 		_execute: function (request) {
-			// console.log('_execute(%s)', request.action);
+			//console.log('_execute(%s)', request.action);
 			var conveyor = this;
 			
 			if (request.websocket) {

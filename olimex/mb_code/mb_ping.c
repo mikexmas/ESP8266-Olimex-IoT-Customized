@@ -95,6 +95,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 					"\"Ofs\": %s,"
 					"\"Name\":\"%s\","
 					"\"Post_type\":%d,"
+					"\"Action\":%d,"
 					"\"Low\": %s,"
 					"\"Hi\": %s"
 				"}",
@@ -109,6 +110,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 				str_ofs,
 				p_ping_config->name,
 				p_ping_config->post_type,
+				p_ping_config->action,
 				uhl_flt2str(str_low, p_ping_config->low, 2),
 				uhl_flt2str(str_hi, p_ping_config->hi, 2)
 			)

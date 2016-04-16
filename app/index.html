@@ -194,14 +194,7 @@
 				<label>Password</label>    <input type="text"     name="Password"  value="" /> <br/>
 				<label>Name</label>        <input type="text"     name="Name"      value="" /> <br/>
 				<label>Token</label>       <input type="text"     name="Token"     value="" /> <br/>
-				<label>Post Format</label>
-					<select name="PostFormat"> 
-						<option value="0">Default</option>
-						<option value="1">Bare/Measurements only</option>
-						<option value="255">Default(unset)</option>
-					</select>
-				<br/>
-				
+
 				<button type="submit">Submit</button>
 				<button type="button">Refresh</button>
 			</fieldset>
@@ -832,6 +825,24 @@
 		
 		<br />
 		
+	</div>
+	
+<style>
+	#logger {
+    display: block;
+    border: solid 1px black;
+    min-width: 360px;
+    min-height: 470px;
+    padding: 10px;
+	margin-top: 10px;
+	}
+	
+	#loggerList {white-space: normal;font-family: monospace;line-height: 1;}
+}
+</style>
+	<div id="logger">
+		<ul id="loggerList">
+		</ul>
 	</div>
 </body>
 </html>
