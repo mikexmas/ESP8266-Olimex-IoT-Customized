@@ -14,7 +14,7 @@ All additional devices are customizable via JSON config strings and stored into 
 - DIO (Digital Input & Outputs, configurable to any valid GPIO, output possible one pulse or repeating pulse)
 - DHTxx (driver by https://github.com/eadf, float value, offset, ...)
 - PING (measure distance using HCSR04, driver by https://github.com/eadf)
-- ADC (customizable, real float value calculation = adc_reading *y + k)
+- AIN (customizable, real float value calculation = ain_reading *y + k)
 - APP level Settings as addition to user (let's say this system) settings
 - float support, values may be float
 - actions support
@@ -125,6 +125,8 @@ Low_h/Hi_h - Low and high limits for H for ACTIONS & Post_type(IFTTT) to notify 
 
 Action - see above
 
+Start - 1=make init of HW and start cyclic reading, 0=stop
+
 
 **PING - ultrasonic distance measurement HCSR04**
 
@@ -158,17 +160,19 @@ Low/Hi - Low and high limits for ACTIONS & Post_type(IFTTT) to notify limits cro
 
 Action - see above
 
+Start - 1=make init of HW and start cyclic reading, 0=stop
 
 
-**ADC**
+
+**AIN**
 
 This is upgraded original ADC device provided in user folder, but have some improvements.
 
 Be aware that ESP8266 valid voltage ADC range is 0..1 VDC.
 
-URL path: /adc
+URL path: /ain
 
-{"Auto":0, "Refresh": 10000, "Each":5, "Thr": 1.0, "ScK": 1.0, "ScY": 0.0, "Name": "<name>", "Start":1}
+{"Auto":0, "Refresh": 10000, "Each":5, "Thr": 1.0, "ScK": 1.0, "ScY": 0.0, "Name": "<name>", "Low": 0.0, "Hi": 0.0, "Post_type":0, "Start":1}
 
 Auto - Auto start when board starts
 
@@ -184,4 +188,8 @@ ScY - Scale Y factor: value = measured * ScK + ScY
 
 Name - name of value for Thingspeak
 
-Start - make init of HW
+Post_type - see above
+
+Low/Hi - Low and high limits for ACTIONS & Post_type(IFTTT) to notify limits crossing
+
+Start - 1=make init of HW and start cyclic reading, 0=stop
