@@ -46,9 +46,15 @@ mb_action_data_t mb_ping_action_data;
 LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
 	bool ret = false;
 	float readVal = 0.0f;
-	
-	if (ping_ping(&pingData, p_ping_config->max_distance, &readVal)) {
-		mb_ping_val = readVal + p_ping_config->offset;
+
+	// max distance may be inverse to measure level of liquid (max_distance defines height of barrel); in this case max waiting echo time is more than height
+	if (ping_ping(&pingData,
+				(p_ping_config->max_distance < 0.0f ? uhl_fabs(p_ping_config->max_distance) * 1.25f : p_ping_config->max_distance),
+				&readVal)) {
+		if (p_ping_config->max_distance < 0.0f)
+			mb_ping_val = uhl_fabs(p_ping_config->max_distance) - readVal + p_ping_config->offset;
+		else
+			mb_ping_val = readVal + p_ping_config->offset;
 		uhl_flt2str(mb_ping_val_str, mb_ping_val, 2);
 		ret = true;
         MB_PING_DEBUG("PING:Read OK:VAL:%s\n", mb_ping_val_str);
@@ -172,40 +178,35 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 	
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_ping_sensor_fault && mb_ping_val_str[0] != 0x00 && p_ping_config->refresh * errCount < MB_PING_ERROR_COUNT * MB_PING_ERROR_COUNT) {
-		if ((uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold)
-				|| (count >= p_ping_config->each && (uhl_fabs(mb_ping_val - old_state) > 0.1))
-				|| (count >= 0xFF)
-			) {
-			MB_PING_DEBUG("PING:Change:[%d]->[%s],Count:[%d]/[%d]\n", (int)old_state, mb_ping_val_str, p_ping_config->each, count);
-			old_state = mb_ping_val;
-			count = 0;
-			
-			// Evaluate limits in some cases; we need later for eg IFTTT / internal action
+		
+		// Allways check for limits crossing
+		// Special handling; notify once only when limit exceeded
+		if (p_ping_config->post_type == MB_POSTTYPE_IFTTT
+#if MB_ACTIONS_ENABLE
+			|| p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST
+#endif
+			) {	// IFTTT limits check; make hysteresis to reset flag
+					// Evaluate limits in some cases; we need later for eg IFTTT / internal action
 			uint8 eval_val = 0x00;
 			uint8 tmp_limits_notified;
 			bool make_event = false;
-			// Special handling; notify once only when limit exceeded
-			if (p_ping_config->post_type == MB_POSTTYPE_IFTTT
-#if MB_ACTIONS_ENABLE
-				|| p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST
-#endif
-				) {	// IFTTT limits check; make hysteresis to reset flag
-				eval_val = uhl_which_event(mb_ping_val, p_ping_config->hi, p_ping_config->low, p_ping_config->threshold, &mb_limits_notified_str);
-				tmp_limits_notified = eval_val;
-				make_event = false;
+			
+			eval_val = uhl_which_event(mb_ping_val, p_ping_config->hi, p_ping_config->low, p_ping_config->threshold, &mb_limits_notified_str);
+			tmp_limits_notified = eval_val;
+			make_event = false;
 				
-				if (mb_limits_notified != tmp_limits_notified && tmp_limits_notified != MB_LIMITS_NOTIFY_INIT)		// T
-				{
-					make_event = true;
-					mb_limits_notified = tmp_limits_notified;
-				}
+			if (mb_limits_notified != tmp_limits_notified && tmp_limits_notified != MB_LIMITS_NOTIFY_INIT)		// T
+			{
+				make_event = true;
+				mb_limits_notified = tmp_limits_notified;
+			}
 				
-				MB_PING_DEBUG("PING:Eval:%d,Notif:%d,Notif_str:%s,Make:%d\n",eval_val, mb_limits_notified, mb_limits_notified_str, make_event);
+			MB_PING_DEBUG("PING:Eval:%d,Notif:%d,Notif_str:%s,Make:%d\n",eval_val, mb_limits_notified, mb_limits_notified_str, make_event);
 
-				if (make_event && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-					mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
-					webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
-				}
+			if (make_event && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
+				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+			}
 
 #if MB_ACTIONS_ENABLE			
 			if (make_event && p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST) {	// ACTION: DIO
@@ -217,8 +218,19 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 				setTimeout(mb_action_post,  &mb_ping_action_data, 10);
 			}
 #endif
-
-			} else if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+		}
+	
+		// POST DATA EVALUATE every xyz ... not allways
+		if ((uhl_fabs(mb_ping_val - old_state) > p_ping_config->threshold)
+				|| (count >= p_ping_config->each && (uhl_fabs(mb_ping_val - old_state) > 0.1))
+				|| (count >= 0xFF)
+			) {
+			MB_PING_DEBUG("PING:Change:[%d]->[%s],Count:[%d]/[%d]\n", (int)old_state, mb_ping_val_str, p_ping_config->each, count);
+			old_state = mb_ping_val;
+			count = 0;
+			
+			// Special=> Thingsspeak
+			if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			}

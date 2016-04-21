@@ -22,7 +22,7 @@
 
 	float uhl_convert_f_to_c(float val_f);
 	
-	bool uhl_fabs(float val);
+	float uhl_fabs(float val);
 	
 	/* Convert float number to string */
 	char *uhl_flt2str(char* str, float val, int decimals);

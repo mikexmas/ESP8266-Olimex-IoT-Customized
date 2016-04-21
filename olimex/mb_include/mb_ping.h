@@ -18,7 +18,7 @@
 			uint8 post_type;
 			uint8 action;	// ACTION TYPE: 0x01 = DO (Relay)
 			uint8 free3;
-			float max_distance;	// in selected units
+			float max_distance;	// in selected units, negative number define mesurement of (liquid) level (measure = MAX_DISTANCE - measured_distance from sensor) in barrel
 			float threshold;
 			float offset;
 			char name[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK

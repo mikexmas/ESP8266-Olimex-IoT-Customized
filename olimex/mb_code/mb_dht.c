@@ -75,7 +75,10 @@ LOCAL bool ICACHE_FLASH_ATTR dht_read_from_sensor() {
 		strncpy_null(mb_dht_hum_str, tmp_str, 9);
 		ret = true;
 
-		MB_DHT_DEBUG("DHT:Read:OK:T:%s,H:%s\r\n", mb_dht_temp_str, mb_dht_hum_str);
+		MB_DHT_DEBUG("DHT:Read:OK:T:%s,H:%s\n", mb_dht_temp_str, mb_dht_hum_str);
+	}
+	else {
+		MB_DHT_DEBUG("DHT:Read:ERROR\n");
 	}
 
 	return ret;
@@ -157,8 +160,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 					"\"Units\": %d,"
 					"\"Name_t\": \"%s\","
 					"\"Name_h\": \"%s\","
-					"\"Post_type:\":%d,"
-					"\"Action:\":%d,"
+					"\"Post_type\":%d,"
+					"\"Action\":%d,"
 					"\"Low_t\": %s,"
 					"\"Hi_t\": %s,"
 					"\"Low_h\": %s,"
@@ -252,44 +255,34 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 	
 	// Check if err count; after some time we do not want to have too old value
 	if (!mb_dht_sensor_fault && mb_dht_temp_str[0] != 0x00 && mb_dht_hum_str[0] != 0x00 && p_dht_config->refresh * errCount < MB_DHT_ERROR_COUNT * 1000) {
-		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t
-				|| uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h 
-				|| (count >= p_dht_config->each && (uhl_fabs(mb_dht_temp - old_state_t) > 0.1 || uhl_fabs(mb_dht_hum - old_state_h) > 0.1))
-				|| (count >= 0xFF)	// count is 8bits, allways make after ff
-			) {
-
-			MB_DHT_DEBUG("DHT: Change Temp: [%s] -> [%s], Hum: [%s] -> [%s], Count: [%d]/[%d]\n", uhl_flt2str(tmp_str, old_state_t, MB_DHT_DECIMALS), mb_dht_temp_str, uhl_flt2str(tmp_str1, old_state_h, MB_DHT_DECIMALS), mb_dht_hum_str, p_dht_config->each, count);
-
-			old_state_t = mb_dht_temp;
-			old_state_h = mb_dht_hum;
-			count = 0;
-			
-			// Evaluate limits in some cases; we need later for eg IFTTT / internal action
+	
+		// Evaluate limits in some cases; we need later for eg IFTTT / internal action
+		if (p_dht_config->post_type == MB_POSTTYPE_IFTTT
+#if MB_ACTIONS_ENABLE
+			|| p_dht_config->action >= MB_ACTIONTYPE_FIRST && p_dht_config->action <= MB_ACTIONTYPE_LAST
+#endif
+				) {
 			uint8 eval_val = 0x00;
 			uint8 tmp_event_notified_t;
 			uint8 tmp_event_notified_h;
 			bool make_event = false;
-			if (p_dht_config->post_type == MB_POSTTYPE_IFTTT
-#if MB_ACTIONS_ENABLE
-					|| p_dht_config->action >= MB_ACTIONTYPE_FIRST && p_dht_config->action <= MB_ACTIONTYPE_LAST
-#endif
-				) {
-				eval_val = mb_dht_which_event(&mb_limits_notified_t_str, &mb_limits_notified_h_str);
-				tmp_event_notified_t = eval_val & 0x0F;
-				tmp_event_notified_h = eval_val & 0xF0 >> 4;
-				make_event = false;
+
+
+			eval_val = mb_dht_which_event(&mb_limits_notified_t_str, &mb_limits_notified_h_str);
+			tmp_event_notified_t = eval_val & 0x0F;
+			tmp_event_notified_h = eval_val & 0xF0 >> 4;
+			make_event = false;
 				
-				if (mb_limits_notified_t != tmp_event_notified_t && tmp_event_notified_t != MB_LIMITS_NOTIFY_INIT)		// T
-				{
-					make_event = true;
-					mb_limits_notified_t = tmp_event_notified_t;
-				}
+			if (mb_limits_notified_t != tmp_event_notified_t && tmp_event_notified_t != MB_LIMITS_NOTIFY_INIT)		// T
+			{
+				make_event = true;
+				mb_limits_notified_t = tmp_event_notified_t;
+			}
 				
-				if (mb_limits_notified_h != tmp_event_notified_h && tmp_event_notified_h != MB_LIMITS_NOTIFY_INIT) 		// H
-				{
-					make_event = true;
-					mb_limits_notified_h = tmp_event_notified_h;
-				}
+			if (mb_limits_notified_h != tmp_event_notified_h && tmp_event_notified_h != MB_LIMITS_NOTIFY_INIT) 		// H
+			{
+				make_event = true;
+				mb_limits_notified_h = tmp_event_notified_h;
 			}
 			
 			MB_DHT_DEBUG("DHT:Eval:%d,Notif_T:%d,Notif_T_str:%s,Notif_H:%d,Notif_H_str:%s,Make:%d\n",eval_val, mb_limits_notified_t, mb_limits_notified_t_str, mb_limits_notified_h, mb_limits_notified_h_str, make_event);
@@ -310,6 +303,22 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 				setTimeout(mb_action_post,  &mb_dht_action_data, 10);
 			}
 #endif
+		}
+	
+		// Evaluate change of measurement value
+		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t
+				|| uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h 
+				|| (count >= p_dht_config->each && (uhl_fabs(mb_dht_temp - old_state_t) > 0.1 || uhl_fabs(mb_dht_hum - old_state_h) > 0.1))
+				|| (count >= 0xFF)	// count is 8bits, allways make after ff
+			) {
+
+			MB_DHT_DEBUG("DHT: Change Temp: [%s] -> [%s], Hum: [%s] -> [%s], Count: [%d]/[%d]\n", uhl_flt2str(tmp_str, old_state_t, MB_DHT_DECIMALS), mb_dht_temp_str, uhl_flt2str(tmp_str1, old_state_h, MB_DHT_DECIMALS), mb_dht_hum_str, p_dht_config->each, count);
+
+			old_state_t = mb_dht_temp;
+			old_state_h = mb_dht_hum;
+			count = 0;
+
+			// Thinspeak 
 			if (p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);

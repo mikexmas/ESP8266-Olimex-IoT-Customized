@@ -22,7 +22,7 @@ float ICACHE_FLASH_ATTR uhl_convert_f_to_c(float val_f) {
   return (val_f - 32) * 0.55555;
 }
 
-bool ICACHE_FLASH_ATTR uhl_fabs(float val) {
+float ICACHE_FLASH_ATTR uhl_fabs(float val) {
 	return (val >= 0.0f ? val : val*(-1.0f));
 }
 
