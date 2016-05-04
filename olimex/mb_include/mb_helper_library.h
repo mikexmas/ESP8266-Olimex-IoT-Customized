@@ -3,16 +3,16 @@
 	
 	#include "user_config.h"
 	
-	#define DEVICE_STATUS_OK		"OK"		// OK and running
-	#define DEVICE_STATUS_FAULT		"FAULT"		// FAULT (sensor FAULT)
-	#define DEVICE_STATUS_STOP		"STOP"		// OK but no reading (stopped by user or not started)
-	#define DEVICE_STATUS_ERROR		"ERROR"		// ERROR, eg. np valid configuration
-	
 	#define MB_LIMITS_NOTIFY_INIT		 0		// IFTTT event notify: initial state
 	#define MB_LIMITS_NOTIFY_HI		 	 1		// notified OUT-HI of bounds
 	#define MB_LIMITS_NOTIFY_LOW		 2		// notified OUT-LOW of bounds
 	#define MB_LIMITS_NOTIFY_IN		 	 3		// nofified IN bounds
-
+	
+	extern const char DEVICE_STATUS_OK[];			// OK and running
+	extern const char DEVICE_STATUS_FAULT[];		// FAULT (sensor FAULT)
+	extern const char DEVICE_STATUS_STOP[];		// OK but no reading (stopped by user or not started)
+	extern const char DEVICE_STATUS_ERROR[];		// ERROR, eg. np valid configuration
+	
 	extern const char MB_LIMITS_NONE[];
 	extern const char MB_LIMITS_HI[];
 	extern const char MB_LIMITS_LOW[];

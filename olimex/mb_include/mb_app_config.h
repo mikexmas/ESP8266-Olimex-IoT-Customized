@@ -5,7 +5,6 @@
 	#include "user_webserver.h"
 	
 	#define MB_APP_CONFIG_URL            "/appconfig"
-	#define MB_APP_CONFIG__URL           "/appconfig/"
 	
 	#define MB_APP_CONFIG_START_SECTOR   0x105
 
@@ -17,10 +16,10 @@
 	// be careful to assign enough space
 	// TODO: maybe make conditional space alolocation
 	typedef struct {
-		uint32 adc[16];
-		uint32 dht[32];
-		uint32 ping[16];
-		uint32 dio[32];
+		uint32 adc[12];		// actual 11
+		uint32 dht[20];		// actual 17
+		uint32 ping[15];	// 14
+		uint32 dio[30];		// 28
 	} user_app_config_data_t;
 	
 	extern user_app_config_data_t *p_user_app_config_data;

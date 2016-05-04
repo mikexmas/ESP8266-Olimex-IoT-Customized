@@ -4,7 +4,6 @@ ifndef PDIR
 
 endif
 
-#DEVICE?=0		// MIHAB: EVBONLY
 DEVICE?=0
 SSL?=0
 DEFINES+= -DDEVICE=$(DEVICE) -DSSL=$(SSL)

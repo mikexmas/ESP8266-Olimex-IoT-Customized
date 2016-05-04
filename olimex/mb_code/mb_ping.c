@@ -254,7 +254,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 }
 
 /* Timer init */
-void ICACHE_FLASH_ATTR mb_ping_timer_init(bool start_cmd){
+LOCAL void ICACHE_FLASH_ATTR mb_ping_timer_init(bool start_cmd){
 	if (ping_timer != 0) {
 		clearInterval(ping_timer);
 	}

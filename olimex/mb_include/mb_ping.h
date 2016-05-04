@@ -4,7 +4,7 @@
 	#include "mb_main.h"
 			
 	#if MB_PING_ENABLE
-		#define MB_PING_DEBUG 1
+		#define MB_PING_DEBUG 0
 		
 		void mb_ping_init(bool isStartReading);
 		
@@ -24,7 +24,7 @@
 			char name[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK
 			float low;
 			float hi;
-		} mb_ping_config_t;
+		} mb_ping_config_t;		// 14
 		
 		#define MB_PING_AUTOSTART				 0		// no default autostart
 		#define MB_PING_TRIGGER_PIN_DEFAULT		 12		// default trigger PIN

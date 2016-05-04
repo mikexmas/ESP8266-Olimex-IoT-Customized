@@ -14,6 +14,8 @@
 		#define MB_AIN_THRESHOLD_DEFAULT         1.0f
 		#define MB_AIN_SCALE_K_DEFAULT           1.0f
 		#define MB_AIN_SCALE_Y_DEFAULT           0.0f
+		#define MB_AIN_POST_TYPE_DEFAULT 		 MB_POSTTYPE_DEFAULT
+		#define MB_AIN_ACTION_DEFAULT			 MB_ACTIONTYPE_NONE
 		
 		#define MB_AIN_DEBUG                     1
 		
@@ -29,7 +31,11 @@
 			char name[12];	// 11 chars + null; name for POSTing data to eg. THINGSPEAK
 			float low;		// IFTTT limits
 			float hi;
-		} mb_ain_config_t;
+			uint8 action;	// internal action
+			uint8 free1;
+			uint8 free2;
+			uint8 free3;
+		} mb_ain_config_t;	// 11 dwords
 		
 		void MB_AIN_init(uint8 isStartReading);
 		

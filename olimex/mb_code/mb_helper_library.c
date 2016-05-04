@@ -14,6 +14,11 @@ const char MB_LIMITS_HI[] = "HI";
 const char MB_LIMITS_LOW[] = "LOW";
 const char MB_LIMITS_IN[] = "IN";
 
+const char DEVICE_STATUS_OK[] = "OK";			// OK and running
+const char DEVICE_STATUS_FAULT[] = "FALUT";		// FAULT (sensor FAULT)
+const char DEVICE_STATUS_STOP[] = "STOP";		// OK but no reading (stopped by user or not started)
+const char DEVICE_STATUS_ERROR[] = "ERROR";		// ERROR, eg. np valid configuration
+
 float ICACHE_FLASH_ATTR uhl_convert_c_to_f(float val_c) {
 	return val_c * 1.8 + 32;
 }

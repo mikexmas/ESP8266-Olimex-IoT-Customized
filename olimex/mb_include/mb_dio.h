@@ -5,7 +5,7 @@
 	
 	#if MB_DIO_ENABLE
 	
-		#define MB_DIO_DEBUG 1
+		#define MB_DIO_DEBUG 0
 
 		#define MB_DIO_DEVICE	"DIO"
 		#define MB_DIO_URL      "/dio"
@@ -56,7 +56,7 @@
 			uint32 pls_on;		// length of the pulse (mseconds)
 			uint32 pls_off;		// length of the pulse OFF(mseconds)
 			
-			char name[12];		// 12+ 4 +8 = 24 bytes
+			char name[12];		// 7dw
 			
 		} mb_dio_config_item_t;
 		
@@ -65,7 +65,7 @@
 			uint8 free1;
 			uint8 free2;
 			uint8 free3;
-			mb_dio_config_item_t items[MB_DIO_ITEMS];
+			mb_dio_config_item_t items[MB_DIO_ITEMS];	// 4x7=27 + 1 = 28
 		} mb_dio_config_t;
 
 		typedef struct {

@@ -5,7 +5,7 @@
 	
 	#if MB_DHT_ENABLE
 	
-		#define MB_DHT_DEBUG 1
+		#define MB_DHT_DEBUG 0
 
 		void mb_dht_init(bool isStartReading);
 		
@@ -35,7 +35,7 @@
 			float hi_t;
 			float low_h;
 			float hi_h;
-		} mb_dht_config_t;
+		} mb_dht_config_t;	// 17 actual
 		
 		#define MB_DHT_AUTOSTART				 0		// no default autostart
 		#define MB_DHT_TYPE_DEFAULT              1		// 0=DHT11/1=DHT22

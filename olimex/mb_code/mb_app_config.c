@@ -18,12 +18,11 @@ user_app_config_data_t user_app_config_data;
 user_app_config_data_t *p_user_app_config_data = &user_app_config_data;
 bool user_app_config_data_valid = false;
 
-
 LOCAL void ICACHE_FLASH_ATTR mb_appconfig_set_response(char *response, bool is_fault, uint8 req_type) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
 	
-	mb_make_full_device_name(full_device_name, MB_DHT_DEVICE, USER_CONFIG_USER_SIZE);
+	mb_make_full_device_name(full_device_name, "APPCFG", USER_CONFIG_USER_SIZE);
 	
 	debug("APPCFG:Resp.prep:%d;isFault:%d\n",req_type, is_fault);
 	
@@ -103,7 +102,6 @@ void ICACHE_FLASH_ATTR user_app_config_init() {
 	
 	flash_region_register("app-config", MB_APP_CONFIG_START_SECTOR, 0x001);
 	webserver_register_handler_callback(MB_APP_CONFIG_URL, user_app_config_handler);
-	webserver_register_handler_callback(MB_APP_CONFIG__URL, user_app_config_handler);
 	
 	// load
 	user_app_config_data_t load_app_config;
@@ -138,7 +136,7 @@ bool ICACHE_FLASH_ATTR user_app_config_load(uint32 *p_buffer, uint32 buffer_size
 	
 	flashSize = (config_head.validandlength & 0x3FF) * 4;
 	
-	if (flashSize < sizeof(user_app_config_data_t))
+	if (flashSize != sizeof(user_app_config_data_t))
 		return false;
 		
 	// Load data from flash

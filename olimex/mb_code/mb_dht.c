@@ -300,7 +300,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 					mb_dht_action_data.value = 1;
 				else 
 					mb_dht_action_data.value = 0;
-				setTimeout(mb_action_post,  &mb_dht_action_data, 10);
+				setTimeout(mb_action_post, &mb_dht_action_data, 10);
 			}
 #endif
 		}

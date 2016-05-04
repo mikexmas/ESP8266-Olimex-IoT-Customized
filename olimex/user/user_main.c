@@ -64,7 +64,6 @@ void ICACHE_FLASH_ATTR user_rf_pre_init(void) {
 }
 
 void ICACHE_FLASH_ATTR user_init_done() {
-	
 	debug("\nINIT: Done\n\n");
 }
 
