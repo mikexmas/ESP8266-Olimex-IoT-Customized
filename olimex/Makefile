@@ -61,9 +61,9 @@ LINKFLAGS_eagle.app.v6 = \
     -T$(LD_FILE)   \
 	-Wl,--no-check-sections	\
     -u call_user_start	\
+	-Wl,--gc-sections \
 	-Wl,-static						\
 	-Wl,--start-group					\
-	-Wl,--gc-sections \
 	-lc					\
 	-lgcc					\
 	-lhal					\
