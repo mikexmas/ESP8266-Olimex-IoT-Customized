@@ -36,8 +36,7 @@ typedef struct _ETSTIMER_ {
 } ETSTimer;
 
 /* interrupt related */
-#define ETS_SDIO_INUM       1
-#define ETS_SPI_INUM	    2
+#define ETS_SPI_INUM	   2
 #define ETS_GPIO_INUM       4
 #define ETS_UART_INUM       5
 #define ETS_UART1_INUM      5
@@ -55,9 +54,6 @@ typedef struct _ETSTIMER_ {
 #define ETS_FRC_TIMER1_NMI_INTR_ATTACH(func) \
 	NmiTimSetFunc(func)
 
-#define ETS_SDIO_INTR_ATTACH(func, arg)\
-    ets_isr_attach(ETS_SDIO_INUM, (func), (void *)(arg))
-
 #define ETS_GPIO_INTR_ATTACH(func, arg) \
     ets_isr_attach(ETS_GPIO_INUM, (func), (void *)(arg))
 
@@ -72,6 +68,9 @@ typedef struct _ETSTIMER_ {
 
 #define ETS_INTR_DISABLE(inum) \
     ets_isr_mask((1<<inum))
+
+#define ETS_SPI_INTR_ENABLE() \
+    ETS_INTR_ENABLE(ETS_SPI_INUM)
 
 #define ETS_UART_INTR_ENABLE() \
     ETS_INTR_ENABLE(ETS_UART_INUM)
@@ -90,16 +89,5 @@ typedef struct _ETSTIMER_ {
 
 #define ETS_GPIO_INTR_DISABLE() \
     ETS_INTR_DISABLE(ETS_GPIO_INUM)
-    
-#define ETS_SPI_INTR_ENABLE() \
-    ETS_INTR_ENABLE(ETS_SPI_INUM)
 
-#define ETS_SPI_INTR_DISABLE() \
-    ETS_INTR_DISABLE(ETS_SPI_INUM)
-
-#define ETS_SDIO_INTR_ENABLE() \
-    ETS_INTR_ENABLE(ETS_SDIO_INUM)
-
-#define ETS_SDIO_INTR_DISABLE() \
-    ETS_INTR_DISABLE(ETS_SDIO_INUM)
 #endif /* _ETS_SYS_H */

@@ -34,7 +34,7 @@ float ICACHE_FLASH_ATTR uhl_fabs(float val) {
 char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
 {
     int int_part = (int)val;
-    double float_part = (double)((double)val - (double)int_part);
+    float float_part = (float)((float)val - (float)int_part);
 	if (float_part < 0.0)
 		float_part *= -1.0;
     char str_dec[20];
@@ -54,14 +54,14 @@ char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
         os_strcat(str, ".");  // add dot
 		
 		int cnt_dec = decimals;
-		double double_part = float_part;
+		float double_part = float_part;
 		//debug("f2str:decimals*10000:%d, double:%d\n", (long)(float_part*100000.0), (long)(double_part*100000.0));
 		while (cnt_dec--) {
 			double_part = double_part * 10.0;
 			int int_of_double_part = (int)double_part;
 			//debug("f2str:cnt:%d,int:%d\n", cnt_dec, int_of_double_part);
 			if (cnt_dec == 0) {		// round last digit
-				double remaining = double_part - int_of_double_part;
+				float remaining = double_part - int_of_double_part;
 				//debug("f2str:rem0*1000000:%d", (long)(remaining*1000000.0));
 				if (int_of_double_part<9 && int_of_double_part>0) {
 					if (remaining >= 0.5)
@@ -70,7 +70,7 @@ char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
 						int_of_double_part--;
 				}
 			} else if (cnt_dec == 1) {	// care about precision at last digit
-				double remaining = double_part - int_of_double_part;
+				float remaining = double_part - int_of_double_part;
 				if ((remaining > 0.999) && (int_of_double_part <9))
 					int_of_double_part++;
 				//debug("f2str:rem1*1000000:%d", (long)(remaining*1000000.0));
@@ -80,7 +80,7 @@ char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
 			os_sprintf(tmp_dec, "%01d", abs(int_of_double_part));
 			os_strcat(str_dec, tmp_dec);
 			//debug("f2str:tmpstr:%s\n", str_dec);
-			double_part = double_part - (double)int_of_double_part;
+			double_part = double_part - (float)int_of_double_part;
 		}
  
 		int i;
@@ -165,16 +165,21 @@ float ICACHE_FLASH_ATTR uhl_jsonparse_get_value_as_float(struct jsonparse_state 
 		return flt_val;
 }
 
-
 void ICACHE_FLASH_ATTR uhl_hexdump(uint8* p_data, int data_len, uint32 real_addr) {
+	return;
+}
+
+void ICACHE_FLASH_ATTR uhl_hexdumpOLD(uint8* p_data, int data_len, uint32 real_addr) {
+	/*
 	char line[80];
 	line[0] = 0x0;
 	char linetmp[10];
 	uint8* p_cur;
 	// 0x00000000|01 02 03 04 05 06 07 08 09 10 01 02 03 04 05 06
-	debug("Mem hex dump: %X %d\n", real_addr, data_len);
+	//debug("Mem hex dump: %X %d\n", real_addr, data_len);
 	int i=0;
-	os_sprintf(line, "%X|", real_addr);
+	//os_sprintf(line, "%X|", real_addr);
+	
 	for (p_cur=p_data; p_cur < p_data + data_len; p_cur++) {
 		i++;
 		if (*p_cur <= 0x0F)
@@ -190,10 +195,13 @@ void ICACHE_FLASH_ATTR uhl_hexdump(uint8* p_data, int data_len, uint32 real_addr
 			os_sprintf(line, "%X|", real_addr);
 		}
 	}
+	*/
+	/*
 	if (i % 16 != 0) {	// last line which may not be 16 bytes long
 		debug("%X|%s\n", real_addr, line);
 	}
-	debug("Debug End\n");
+	*/
+	//debug("Debug End\n");
 }
 
 void ICACHE_FLASH_ATTR mb_make_full_device_name(char *p_dest, char *p_str, int maxlen) {

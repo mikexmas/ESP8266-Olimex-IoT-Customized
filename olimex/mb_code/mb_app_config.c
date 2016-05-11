@@ -18,6 +18,7 @@ user_app_config_data_t user_app_config_data;
 user_app_config_data_t *p_user_app_config_data = &user_app_config_data;
 bool user_app_config_data_valid = false;
 
+
 LOCAL void ICACHE_FLASH_ATTR mb_appconfig_set_response(char *response, bool is_fault, uint8 req_type) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
@@ -62,7 +63,7 @@ void ICACHE_FLASH_ATTR user_app_config_handler (
 		debug("APPCFG: Hexdump\n");
 		uint8 buf[64];
 		spi_flash_read(0x105000, (uint32*)&buf, 64);
-		uhl_hexdump(buf, 64, 0x105000);
+		//uhl_hexdump(buf, 64, 0x105000);
 	}
 	
 	if (is_post && data != NULL && data_len != 0) {
@@ -90,8 +91,9 @@ void ICACHE_FLASH_ATTR user_app_config_handler (
 		}
 	}
 	
-	mb_appconfig_set_response(response, !ret, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
+	// mb_appconfig_set_response(response, !ret, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
 }
+
 
 uint8 ICACHE_FLASH_ATTR user_app_config_is_config_valid() {
 	return user_app_config_data_valid;
@@ -102,6 +104,7 @@ void ICACHE_FLASH_ATTR user_app_config_init() {
 	
 	flash_region_register("app-config", MB_APP_CONFIG_START_SECTOR, 0x001);
 	webserver_register_handler_callback(MB_APP_CONFIG_URL, user_app_config_handler);
+
 	
 	// load
 	user_app_config_data_t load_app_config;

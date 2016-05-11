@@ -7,9 +7,9 @@
 	#define MB_DHT_ENABLE		1		// DHTxx
 	#define MB_AIN_ENABLE		0		// ADC (more advanced than original ADC)
 	#define MB_PING_ENABLE		0		// PING (distance measurement)
-	#define MB_DIO_ENABLE		0		// Digital inputs
+	#define MB_DIO_ENABLE		1		// Digital inputs
 	
-	#define MB_ACTIONS_ENABLE	0		// Actions: internal crss control
+	#define MB_ACTIONS_ENABLE	1		// Actions: internal crss control
 	
 	#define MB_VARNAMEMAX		12		// max size of varname, including null
 
