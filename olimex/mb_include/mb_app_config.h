@@ -31,5 +31,7 @@
 	bool user_app_config_load(uint32 *p_buffer, uint32 buffer_size);
 	
 	bool user_app_config_store();
+	
+	uint8 user_app_config_handler_part(struct jsonparse_state *p_parser);
 
 #endif

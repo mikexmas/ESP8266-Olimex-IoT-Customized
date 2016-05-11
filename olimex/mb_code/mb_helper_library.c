@@ -166,19 +166,14 @@ float ICACHE_FLASH_ATTR uhl_jsonparse_get_value_as_float(struct jsonparse_state 
 }
 
 void ICACHE_FLASH_ATTR uhl_hexdump(uint8* p_data, int data_len, uint32 real_addr) {
-	return;
-}
-
-void ICACHE_FLASH_ATTR uhl_hexdumpOLD(uint8* p_data, int data_len, uint32 real_addr) {
-	/*
 	char line[80];
 	line[0] = 0x0;
 	char linetmp[10];
 	uint8* p_cur;
 	// 0x00000000|01 02 03 04 05 06 07 08 09 10 01 02 03 04 05 06
-	//debug("Mem hex dump: %X %d\n", real_addr, data_len);
+	debug("Mem hex dump: %X %d\n", real_addr, data_len);
 	int i=0;
-	//os_sprintf(line, "%X|", real_addr);
+	os_sprintf(line, "%X|", real_addr);
 	
 	for (p_cur=p_data; p_cur < p_data + data_len; p_cur++) {
 		i++;
@@ -195,13 +190,10 @@ void ICACHE_FLASH_ATTR uhl_hexdumpOLD(uint8* p_data, int data_len, uint32 real_a
 			os_sprintf(line, "%X|", real_addr);
 		}
 	}
-	*/
-	/*
 	if (i % 16 != 0) {	// last line which may not be 16 bytes long
 		debug("%X|%s\n", real_addr, line);
 	}
-	*/
-	//debug("Debug End\n");
+	debug("Debug End\n");
 }
 
 void ICACHE_FLASH_ATTR mb_make_full_device_name(char *p_dest, char *p_str, int maxlen) {

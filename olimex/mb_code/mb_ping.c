@@ -288,6 +288,7 @@ void ICACHE_FLASH_ATTR mb_ping_handler(
 	mb_ping_config_t *p_config = p_ping_config;
 	bool is_post = (method == POST);
 	int start_cmd = -1;	// 0=STOP, 1=START other none
+	uint8 tmp_ret = 0xFF;
 	
 	// post config for INIT
 	if (method == POST && data != NULL && data_len != 0) {
@@ -355,6 +356,8 @@ void ICACHE_FLASH_ATTR mb_ping_handler(
 					start_cmd = (jsonparse_get_value_as_int(&parser) == 1 ? 1 : 0);
 					mb_limits_notified = false;
 					MB_PING_DEBUG("PING:CFG:Start:%d\n", start_cmd);
+				} else if (tmp_ret = user_app_config_handler_part(&parser) != 0xFF){	// check for common app commands
+					MB_PING_DEBUG("PING:CFG:APPCONFIG:%d\n", tmp_ret);
 				}
 			}
 		}

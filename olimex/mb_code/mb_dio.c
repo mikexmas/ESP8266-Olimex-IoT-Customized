@@ -385,6 +385,7 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 	
 	bool is_post = (method == POST);
 	bool is_post_cfg = false;	// do we actually received cfg (to make config)
+	uint8 tmp_ret = 0xFF;
 	mb_dio_work_t *p_work = NULL;
 	
 	// post config for INIT
@@ -462,6 +463,8 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					int tmpisStart = jsonparse_get_value_as_int(&parser);
 					MB_DIO_DEBUG("DIO:CFG:Started DIO!\n");
+				} else if (tmp_ret = user_app_config_handler_part(&parser) != 0xFF){	// check for common app commands
+					MB_DIO_DEBUG("DIO:CFG:APPCONFIG:%d\n", tmp_ret);
 				}
 				else {
 					// SET OUTPUT command (maybe)

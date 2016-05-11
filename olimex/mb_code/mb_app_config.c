@@ -19,81 +19,28 @@ user_app_config_data_t *p_user_app_config_data = &user_app_config_data;
 bool user_app_config_data_valid = false;
 
 
-LOCAL void ICACHE_FLASH_ATTR mb_appconfig_set_response(char *response, bool is_fault, uint8 req_type) {
-	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
-	char full_device_name[USER_CONFIG_USER_SIZE];
+/* Handler called from other handler; 0xFF means not appconfig command */
+uint8 ICACHE_FLASH_ATTR user_app_config_handler_part(struct jsonparse_state *p_parser) {
+	uint8 ret=0xFF;
 	
-	mb_make_full_device_name(full_device_name, "APPCFG", USER_CONFIG_USER_SIZE);
-	
-	debug("APPCFG:Resp.prep:%d;isFault:%d\n",req_type, is_fault);
-	
-	// Sensor fault
-	if (is_fault) {
-		json_error(response, full_device_name, DEVICE_STATUS_ERROR, NULL);
-	}
-	
-	// POST request - status & config
-	else if (req_type==MB_REQTYPE_POST) {
-		json_status(response, full_device_name, DEVICE_STATUS_OK, NULL);
-
-	// normal GET
-	} else {
-		json_status(response, full_device_name, DEVICE_STATUS_OK, NULL);
-	}
-}
-
-void ICACHE_FLASH_ATTR user_app_config_handler (
-	struct espconn *pConnection, 
-	request_method method, 
-	char *url, 
-	char *data, 
-	uint16 data_len, 
-	uint32 content_len, 
-	char *response,
-	uint16 response_len
-) {	
-	struct jsonparse_state parser;
-	int type;
-	char tmp_str[20];
-	bool ret = true;	// 1=OK, 0=failed operation (ERROR)
-	
-	bool is_post = (method == POST);	// it means POST config data
-	
-	if (os_strstr(url, "&hexdump")>0) {
-		debug("APPCFG: Hexdump\n");
-		uint8 buf[64];
-		spi_flash_read(0x105000, (uint32*)&buf, 64);
-		//uhl_hexdump(buf, 64, 0x105000);
-	}
-	
-	if (is_post && data != NULL && data_len != 0) {
-		jsonparse_setup(&parser, data, data_len);
-
-		while ((type = jsonparse_next(&parser)) != 0) {
-			if (type == JSON_TYPE_PAIR_NAME) {
-				if (jsonparse_strcmp_value(&parser, "Save") == 0) {
-					jsonparse_next(&parser);jsonparse_next(&parser);
-					jsonparse_get_value_as_int(&parser);
-					ret = user_app_config_store();
-					debug("APPCFG:SAVE:%d\n", ret);
-				} else if (jsonparse_strcmp_value(&parser, "Erase") == 0) {
-					jsonparse_next(&parser);jsonparse_next(&parser);
-					jsonparse_get_value_as_int(&parser);
-					if (spi_flash_erase_sector(MB_APP_CONFIG_START_SECTOR) == SPI_FLASH_RESULT_OK) {
-						ret = 1;
-					}
-					else {
-						ret = 0;
-					}
-					debug("APPCFG:ERASE:%d\n",ret);
-				}
-			}
+	if (jsonparse_strcmp_value(p_parser, "Save") == 0) {
+		jsonparse_next(p_parser);jsonparse_next(p_parser);
+		jsonparse_get_value_as_int(p_parser);
+		ret = user_app_config_store();
+		debug("APPCFG:SAVE:%d\n", ret);
+	} else if (jsonparse_strcmp_value(p_parser, "Erase") == 0) {
+		jsonparse_next(p_parser);jsonparse_next(p_parser);
+		jsonparse_get_value_as_int(p_parser);
+		if (spi_flash_erase_sector(MB_APP_CONFIG_START_SECTOR) == SPI_FLASH_RESULT_OK) {
+			ret = 1;
 		}
+		else {
+			ret = 0;
+		}
+		debug("APPCFG:ERASE:%d\n",ret);
 	}
-	
-	// mb_appconfig_set_response(response, !ret, is_post ? MB_REQTYPE_POST : MB_REQTYPE_GET);
+	return ret;
 }
-
 
 uint8 ICACHE_FLASH_ATTR user_app_config_is_config_valid() {
 	return user_app_config_data_valid;
@@ -101,10 +48,6 @@ uint8 ICACHE_FLASH_ATTR user_app_config_is_config_valid() {
 
 void ICACHE_FLASH_ATTR user_app_config_init() {
 	user_app_config_data_valid = false;
-	
-	flash_region_register("app-config", MB_APP_CONFIG_START_SECTOR, 0x001);
-	webserver_register_handler_callback(MB_APP_CONFIG_URL, user_app_config_handler);
-
 	
 	// load
 	user_app_config_data_t load_app_config;

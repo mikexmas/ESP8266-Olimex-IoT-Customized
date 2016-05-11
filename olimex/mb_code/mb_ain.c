@@ -242,6 +242,7 @@ void ICACHE_FLASH_ATTR mb_ain_handler(
 	mb_ain_config_t *p_config = p_ain_config;
 	bool is_post = (method == POST);
 	int start_cmd = -1;
+	uint8 tmp_ret = 0xFF;
 
 	if (method == POST && data != NULL && data_len != 0) {
 		jsonparse_setup(&parser, data, data_len);
@@ -298,6 +299,8 @@ void ICACHE_FLASH_ATTR mb_ain_handler(
 					start_cmd = (jsonparse_get_value_as_int(&parser) == 1 ? 1 : 0);
 					ain_limits_notified = false;
 					MB_AIN_DEBUG("AIN:Start:%d\n", start_cmd);
+				} else if (tmp_ret = user_app_config_handler_part(&parser) != 0xFF){	// check for common app commands
+					MB_AIN_DEBUG("AIN:CFG:APPCONFIG:%d\n", tmp_ret);
 				}
 			}
 		}
