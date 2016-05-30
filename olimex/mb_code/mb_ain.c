@@ -27,7 +27,7 @@
 #endif
 
 LOCAL uint16 ain_value_raw = 0;
-LOCAL float ain_value = 0;
+LOCAL float ain_value = 0.0f;
 LOCAL char ain_value_str[15];
 
 LOCAL mb_ain_config_t *p_ain_config;
@@ -137,7 +137,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_set_response(char *response, bool is_fault, 
 }
 
 LOCAL void ICACHE_FLASH_ATTR mb_ain_update() {
-	LOCAL float ain_value_old = 0;
+	LOCAL float ain_value_old = 0.0f;
 	LOCAL uint8 count = 0;
 	char response[WEBSERVER_MAX_VALUE];
 	char ain_value_old_str[15];
@@ -188,7 +188,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_update() {
 	// calculate epsilon to determine min change => it depends on number of decimals
 	//uint32 eps_uint = pow_int(10, p_ain_config->decimals);
 	char eps_str[15];
-	float eps = (1/(float)pow_int(10, p_ain_config->decimals));
+	float eps = (1.0f/(float)pow_int(10, p_ain_config->decimals));
 	if ((uhl_fabs(ain_value - ain_value_old) > p_ain_config->threshold)
 			|| (count >= p_ain_config->each && (uhl_fabs(ain_value - ain_value_old) > eps))
 			|| (count >= 0xFF)

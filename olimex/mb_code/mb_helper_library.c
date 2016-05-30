@@ -20,11 +20,11 @@ const char DEVICE_STATUS_STOP[] = "STOP";		// OK but no reading (stopped by user
 const char DEVICE_STATUS_ERROR[] = "ERROR";		// ERROR, eg. np valid configuration
 
 float ICACHE_FLASH_ATTR uhl_convert_c_to_f(float val_c) {
-	return val_c * 1.8 + 32;
+	return val_c * 1.8f + 32.0f;
 }
 
 float ICACHE_FLASH_ATTR uhl_convert_f_to_c(float val_f) {
-  return (val_f - 32) * 0.55555;
+  return (val_f - 32.0f) * 0.55555f;
 }
 
 float ICACHE_FLASH_ATTR uhl_fabs(float val) {
@@ -33,15 +33,15 @@ float ICACHE_FLASH_ATTR uhl_fabs(float val) {
 
 char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
 {
-    int int_part = (int)val;
+   int int_part = (int)val;
     float float_part = (float)((float)val - (float)int_part);
-	if (float_part < 0.0)
-		float_part *= -1.0;
+	if (float_part < 0.0f)
+		float_part *= -1.0f;
     char str_dec[20];
 	str_dec[0] = 0x00;
  
 	str[0] = 0x00;
-	if (val < 0.0) {
+	if (val < 0.0f) {
 		os_sprintf(str, "-%d", abs(int_part));	// convert integer part to string -
 	}
 	else {
@@ -57,21 +57,21 @@ char* ICACHE_FLASH_ATTR uhl_flt2str(char* str, float val, int decimals)
 		float double_part = float_part;
 		//debug("f2str:decimals*10000:%d, double:%d\n", (long)(float_part*100000.0), (long)(double_part*100000.0));
 		while (cnt_dec--) {
-			double_part = double_part * 10.0;
+			double_part = double_part * 10.0f;
 			int int_of_double_part = (int)double_part;
 			//debug("f2str:cnt:%d,int:%d\n", cnt_dec, int_of_double_part);
 			if (cnt_dec == 0) {		// round last digit
 				float remaining = double_part - int_of_double_part;
 				//debug("f2str:rem0*1000000:%d", (long)(remaining*1000000.0));
 				if (int_of_double_part<9 && int_of_double_part>0) {
-					if (remaining >= 0.5)
+					if (remaining >= 0.5f)
 						int_of_double_part++;
-					else if (remaining <= -0.5)
+					else if (remaining <= -0.5f)
 						int_of_double_part--;
 				}
 			} else if (cnt_dec == 1) {	// care about precision at last digit
 				float remaining = double_part - int_of_double_part;
-				if ((remaining > 0.999) && (int_of_double_part <9))
+				if ((remaining > 0.999f) && (int_of_double_part <9))
 					int_of_double_part++;
 				//debug("f2str:rem1*1000000:%d", (long)(remaining*1000000.0));
 			}
@@ -232,7 +232,7 @@ uint8 ICACHE_FLASH_ATTR uhl_which_event(float val, float hi, float low, float th
 	uint8 ret = 0x00;
 
 	*p_str = (char*)MB_LIMITS_NONE;	
-	if (uhl_fabs(low - hi) > 1.0) {
+	if (uhl_fabs(low - hi) > 1.0f) {
 		if (val > hi) {
 			ret = MB_LIMITS_NOTIFY_HI;
 			*p_str = (char*)MB_LIMITS_HI;

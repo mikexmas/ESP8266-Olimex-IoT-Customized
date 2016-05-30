@@ -34,8 +34,8 @@
 
 #include "c_types.h"
 
-#define PING_US_TO_MM (1.0/5.8)
-#define PING_US_TO_INCH (1.0/148.0)
+#define PING_US_TO_MM (1.0f/5.8f)
+#define PING_US_TO_INCH (1.0f/148.0f)
 
 typedef enum {
   PING_MM = 0,

@@ -92,7 +92,7 @@ LOCAL uint8 ICACHE_FLASH_ATTR mb_dht_which_event(char **p_str_t, char **p_str_h)
 	*p_str_h = (char*)MB_DHT_LIMITS_NONE;
 	
 	// T
-	if (uhl_fabs(p_dht_config->low_t - p_dht_config->hi_t) > 1.0) {
+	if (uhl_fabs(p_dht_config->low_t - p_dht_config->hi_t) > 1.0f) {
 		if (mb_dht_temp > p_dht_config->hi_t) {
 			ret = MB_LIMITS_NOTIFY_HI;
 			*p_str_t = (char*)MB_DHT_LIMITS_T_HI;
@@ -105,7 +105,7 @@ LOCAL uint8 ICACHE_FLASH_ATTR mb_dht_which_event(char **p_str_t, char **p_str_h)
 		}
 	}
 	// H
-	if (uhl_fabs(p_dht_config->low_h - p_dht_config->hi_h) > 1.0) {
+	if (uhl_fabs(p_dht_config->low_h - p_dht_config->hi_h) > 1.0f) {
 		if (mb_dht_hum > p_dht_config->hi_h) {
 			ret = MB_LIMITS_NOTIFY_HI << 4 & ret;
 			*p_str_h = (char*)MB_DHT_LIMITS_H_HI;
@@ -308,7 +308,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 		// Evaluate change of measurement value
 		if (uhl_fabs(mb_dht_temp - old_state_t) > p_dht_config->threshold_t
 				|| uhl_fabs(mb_dht_hum - old_state_h) > p_dht_config->threshold_h 
-				|| (count >= p_dht_config->each && (uhl_fabs(mb_dht_temp - old_state_t) > 0.1 || uhl_fabs(mb_dht_hum - old_state_h) > 0.1))
+				|| (count >= p_dht_config->each && (uhl_fabs(mb_dht_temp - old_state_t) > 0.1f || uhl_fabs(mb_dht_hum - old_state_h) > 0.1f))
 				|| (count >= 0xFF)	// count is 8bits, allways make after ff
 			) {
 
@@ -334,8 +334,8 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 		mb_dht_sensor_fault = true;
 		mb_dht_temp_str[0] = 0x0;
 		mb_dht_hum_str[0] = 0x0;
-		old_state_t = -999.99;		// set to enable instant sending
-		old_state_h = -999.99;
+		old_state_t = -999.99f;		// set to enable instant sending
+		old_state_h = -999.99f;
 		errCount = 0;
 		mb_dht_set_response(response, true, MB_REQTYPE_NONE);
 		user_event_raise(MB_DHT_URL, response);

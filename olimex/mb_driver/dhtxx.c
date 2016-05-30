@@ -44,7 +44,7 @@ scale_humidity(DHT_Type sensor_type, int *data) {
     return (float) data[0];
   } else {
     float humidity = data[0] * 256 + data[1];
-    return humidity / 10.0;
+    return humidity / 10.0f;
   }
 }
 
@@ -56,9 +56,9 @@ scale_temperature(DHT_Type sensor_type, int *data) {
     float temperature = data[2] & 0x7f;
     temperature *= 256;
     temperature += data[3];
-    temperature /= 10.0;
+    temperature /= 10.0f;
     if (data[2] & 0x80)
-      temperature *= -1.0;
+      temperature *= -1.0f;
     return temperature;
   }
 }

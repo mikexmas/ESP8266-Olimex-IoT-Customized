@@ -6,7 +6,6 @@
             <File firstVisibleLine="0" xOffset="0" scrollWidth="441" startPos="388" endPos="388" selMode="0" lang="Normal Text" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\mb_code\Razno.txt" />
             <File firstVisibleLine="0" xOffset="0" scrollWidth="777" startPos="802" endPos="802" selMode="0" lang="C++" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\mb_include\mb_dio.h" />
             <File firstVisibleLine="141" xOffset="0" scrollWidth="2513" startPos="6852" endPos="6852" selMode="0" lang="C" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\mb_code\mb_dio.c" />
-            <File firstVisibleLine="78" xOffset="0" scrollWidth="1715" startPos="3516" endPos="3516" selMode="0" lang="C" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\mb_code\mb_adc.c" />
             <File firstVisibleLine="560" xOffset="0" scrollWidth="854" startPos="17889" endPos="17902" selMode="0" lang="C" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\user\user_config.c" />
             <File firstVisibleLine="156" xOffset="0" scrollWidth="490" startPos="5574" endPos="5574" selMode="0" lang="C++" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\include\user_config.h" />
             <File firstVisibleLine="22" xOffset="0" scrollWidth="938" startPos="1346" endPos="1346" selMode="0" lang="C" encoding="-1" filename="e:\ESP8266\src\mb_master\olimex\mb_code\mb_app_config.c" />
