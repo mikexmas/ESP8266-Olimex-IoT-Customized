@@ -8,8 +8,10 @@
 	#define MB_AIN_ENABLE		0		// ADC (more advanced than original ADC)
 	#define MB_PING_ENABLE		0		// PING (distance measurement)
 	#define MB_DIO_ENABLE		1		// Digital inputs
+
+	#define MB_PCD8544_ENABLE	0		// LCD 3110/5110 with PCD8544 proc
 	
-	#define MB_ACTIONS_ENABLE	1		// Actions: internal crss control
+	#define MB_ACTIONS_ENABLE	0		// Actions: internal crss control
 	
 	#define MB_VARNAMEMAX		12		// max size of varname, including null
 
@@ -44,6 +46,8 @@
 	#include "mb_ain.h"
 	#include "mb_ping.h"
 	#include "mb_dio.h"
+	
+	#include "pcd8544/pcd8544.h"
 
 	void mb_main();
 	

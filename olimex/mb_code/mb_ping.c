@@ -1,5 +1,4 @@
 #include "mb_main.h"
-#include "mb_main.h"
 
 #if MB_PING_ENABLE
 
