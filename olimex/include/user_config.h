@@ -169,7 +169,7 @@
 		#define UART1_ENABLE                   0
 		
 		// ESP8266-EVB native
-		#define BUTTON_ENABLE                  1
+		#define BUTTON_ENABLE                  0
 		#define RELAY_ENABLE                   0
 		#define ADC_ENABLE                     0
 		// ESP8266-EVB-BAT native

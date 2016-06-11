@@ -65,6 +65,7 @@ void ICACHE_FLASH_ATTR user_rf_pre_init(void) {
 
 void ICACHE_FLASH_ATTR user_init_done() {
 	debug("\nINIT: Done\n\n");
+	mb_main();
 }
 
 /******************************************************************************
@@ -167,10 +168,10 @@ void ICACHE_FLASH_ATTR user_init(void) {
 #if DEVICE == BADGE
 	badge_init();
 #endif	
-	
-	mb_main();
-	
+
+#if BUTTON_ENABLE
 	key_init();
+#endif
 	webserver_init();
 
 }

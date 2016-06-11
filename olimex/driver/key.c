@@ -8,6 +8,9 @@
  * Modification history:
  *	 2014/5/1, v1.0 create this file.
 *******************************************************************************/
+#include "user_config.h"
+#if BUTTON_ENABLE
+
 #include "ets_sys.h"
 #include "os_type.h"
 #include "osapi.h"
@@ -194,3 +197,4 @@ LOCAL void key_intr_handler(struct keys_param *keys) {
 		}
 	}
 }
+#endif

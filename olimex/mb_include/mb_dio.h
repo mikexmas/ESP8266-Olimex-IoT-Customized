@@ -13,6 +13,7 @@
 		#define MB_DIO_ITEMS		4		// default DIO items
 		#define MB_DIO_FLT_TOUT		50		// normal TOUT filter time to stabilize input ms
 		#define MB_DIO_FLT_LONG		1000	// normal TOUT filter time to stabilize input 
+		#define MB_DIO_LONG_PRESS	8000	// time to restore defaults (reset settings)
 
 		void mb_dio_init();
 		
@@ -31,7 +32,7 @@
 			DIO_IN_PU_POS_LONG	= 22,		// PULL-UP, up transition trigger
 			DIO_IN_NP_POS_LONG	= 23,		// NO-PULL, up transition trigger
 			DIO_IN_PU_NEG_LONG	= 24,		// PULL-UP, down transition trigger
-			DIO_IN_NP_NEG_LONG	= 25,		// NO-PULL, down transition trigger			
+			DIO_IN_NP_NEG_LONG	= 25,		// NO-PULL, down transition trigger
 			
 			__DIO_IN_LAST   = DIO_IN_NP_NEG_LONG,
 
@@ -45,11 +46,11 @@
 		typedef struct {
 			uint8 gpio_pin;
 			uint8 type;			// 0=none,...mb_dio_type_t
-			uint8 init_state;	// out init state
+			uint8 init_state;	// output init state
 			uint8 inverse;		// 1= inverse logic of electrical state
 			
 			uint8 post_type;	// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
-			uint8 free1;
+			uint8 long_press;	// long press detection; restore defaults
 			uint8 free2;
 			uint8 free3;
 			
@@ -77,6 +78,7 @@
 			uint8 timer_run;
 			uint8 index;		// index in array
 			uint32 flt_time;
+			os_timer_t timer2;	// filter timer2; second function (like log press for resore defaults) / 
 		} mb_dio_work_t;
 		
 		void mb_dio_handler(
