@@ -36,8 +36,8 @@ LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_
 LOCAL void mb_dio_set_output(mb_dio_work_t *p_work);
 LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
-// GPIO interruot timer to determine stabile output
-LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
+// GPIO interruot timer to determine stabile output; exe for both NORMAL & LONG
+LOCAL uint8 ICACHE_FLASH_ATTR mb_dio_intr_timer_exe(mb_dio_work_t *p_work) {
 	os_timer_disarm(&p_work->timer);
 	uint8 state_cur = GPIO_INPUT_GET(p_work->p_config->gpio_pin);
 	uint8 handled = 0;
@@ -71,9 +71,27 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
 		handled = true;
 	}
 
+	return handled;
+}
+
+// GPIO interruot timer to determine stabile output
+/* Interrupt timer for NORMAL press */
+LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
+	uint8 handled = mb_dio_intr_timer_exe(p_work);
 	if (handled) {
-		MB_DIO_DEBUG("DIO:Intr:Timer:Index:%d,Gpio:%d,GPIOState:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, state_cur, p_work->state, p_work->state_old);
+		MB_DIO_DEBUG("DIO:Intr:Timer:Index:%d,Gpio:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state, p_work->state_old);
 		mb_dio_send_state(p_work);
+	}
+}
+
+/* Interrupt timer for LONG press */
+LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer_long_press(mb_dio_work_t *p_work) {
+	uint8 handled = mb_dio_intr_timer_exe(p_work);
+	// if its still pressed
+	if (handled && p_work->state == 0x01) {
+		MB_DIO_DEBUG("DIO:Intr:LONG PRESS:Index:%d,Gpio:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state, p_work->state_old);
+		user_config_restore_defaults();
+		user_config_load();
 	}
 }
 
@@ -93,6 +111,13 @@ LOCAL void mb_dio_intr_handler(void *arg) {
 			os_timer_disarm(&p_cur_work->timer);
 			os_timer_setfn(&p_cur_work->timer, (os_timer_func_t *)mb_dio_intr_timer, p_cur_work);
 			os_timer_arm(&p_cur_work->timer, p_cur_work->flt_time, 0);
+			
+			// if long press => set timer
+			if (p_cur_work->p_config->long_press == 0x01) {
+				os_timer_disarm(&p_cur_work->timer2);
+				os_timer_setfn(&p_cur_work->timer2, (os_timer_func_t *)mb_dio_intr_timer_long_press, p_cur_work);
+				os_timer_arm(&p_cur_work->timer2, MB_DIO_LONG_PRESS, 0);
+			}
 		}
 	}
 }
