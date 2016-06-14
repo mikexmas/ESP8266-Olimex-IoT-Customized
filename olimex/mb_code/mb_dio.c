@@ -87,11 +87,12 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer(mb_dio_work_t *p_work) {
 /* Interrupt timer for LONG press */
 LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer_long_press(mb_dio_work_t *p_work) {
 	uint8 handled = mb_dio_intr_timer_exe(p_work);
+	os_timer_disarm(&p_work->timer2);
 	// if its still pressed
 	if (handled && p_work->state == 0x01) {
 		MB_DIO_DEBUG("DIO:Intr:LONG PRESS:Index:%d,Gpio:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state, p_work->state_old);
-		user_config_restore_defaults();
-		user_config_load();
+		//user_config_restore_defaults();
+		//user_config_load();
 	}
 }
 
@@ -192,16 +193,18 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	// POST request - status & config only
 	if (req_type == MB_REQTYPE_POST) {
 		int i=0;
-		char str_tmp[256];
+		char str_tmp[512];
 		str_tmp[0] = 0x00;
 		for (i;i<MB_DIO_ITEMS;i++) {
-			mb_dio_work_t *p_cur_work = &dio_work[i];
-			if (p_cur_work->p_config != NULL) {
-				char tmp_1[48];
-				mb_dio_config_item_t *p_cur_config = p_cur_work->p_config;
-				os_sprintf(tmp_1, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type:\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type);
-				os_strcat(str_tmp, tmp_1);
+			mb_dio_config_item_t *p_cur_config = &p_dio_config->items[i];
+			char tmp_1[128];
+			if (p_cur_config->gpio_pin < 0x20) {
+				os_sprintf(tmp_1, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type:\":%d, \"Long_press:\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->long_press);
 			}
+			else {
+				os_sprintf(tmp_1, ", \"Dio%d\":\"UNCONFIGURED\"", i);
+			}
+			os_strcat(str_tmp, tmp_1);
 		}
 
 		json_status(response, full_device_name, DEVICE_STATUS_OK, 
@@ -483,6 +486,13 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 						p_config->items[current_dio_id].post_type = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Post_type:%d\n", p_config->items[current_dio_id].post_type);
 					}
+				} else if (jsonparse_strcmp_value(&parser, "Long_press") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
+						p_config->items[current_dio_id].long_press = jsonparse_get_value_as_int(&parser);
+						MB_DIO_DEBUG("DIO:CFG:Long_press:%d\n", p_config->items[current_dio_id].long_press);
+					}
 				}
 				else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
@@ -538,7 +548,6 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 	webserver_register_handler_callback(MB_DIO_URL, mb_dio_handler);
 	device_register(NATIVE, 0, MB_DIO_DEVICE, MB_DIO_URL, NULL, NULL);
 
-	
 	if (!user_app_config_is_config_valid())
 	{
 		p_dio_config->autostart = false;

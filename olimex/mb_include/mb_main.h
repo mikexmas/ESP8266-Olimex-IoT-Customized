@@ -9,9 +9,9 @@
 	#define MB_PING_ENABLE		1		// PING (distance measurement)
 	#define MB_DIO_ENABLE		1		// Digital inputs
 
-	#define MB_PCD8544_ENABLE	1		// LCD 3110/5110 with PCD8544 proc
+	#define MB_PCD8544_ENABLE	0		// LCD 3110/5110 with PCD8544 proc
 	
-	#define MB_ACTIONS_ENABLE	1		// Actions: internal crss control
+	#define MB_ACTIONS_ENABLE	1		// Actions: internal cross control
 	
 	#define MB_VARNAMEMAX		12		// max size of varname, including null
 
