@@ -19,7 +19,7 @@
 		uint32 adc[12];		// actual 11
 		uint32 dht[20];		// actual 17
 		uint32 ping[15];	// 14
-		uint32 dio[30];		// 28
+		uint32 dio[45];		// 43
 		uint32 pcd8544[32];		// actual??
 	} user_app_config_data_t;
 	

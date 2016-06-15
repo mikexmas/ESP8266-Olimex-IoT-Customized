@@ -55,7 +55,7 @@ When measurement devices are configure it is neccessary to invoke POST /app-conf
 
 URL path: /dio
 
-{"Auto": 0, "Dio":0, {"Gpio":5, "Type":30, "Inv":0, "Pls\_on": 2000, "Pls\_off": 0, "Name": "<name>", "Post_type": o}, "Start":1}
+{"Auto": 0, "Dio":0, "Gpio":5, "Type":30, "Inv":0, "Pls\_on": 2000, "Pls\_off": 0, "Name": "<name>", "Post_type":0, "Long_Press":0, "Start":1}
 
 Auto - autostart when board starts
 
@@ -83,6 +83,8 @@ Pls\_on - pulse length HIGH in ms (0 no pulse)
 Pls_off - pulse length LOW in ms (0 no pulse)
 
 Post_type - see above
+
+Long_press - action when input (button) is pressed for 10 secs; 1=reset to defaults, input should be set to type = 14 (to low)
 
 Start - make init of HW
 

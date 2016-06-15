@@ -193,18 +193,17 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	// POST request - status & config only
 	if (req_type == MB_REQTYPE_POST) {
 		int i=0;
-		char str_tmp[512];
+		char str_tmp[1024];
 		str_tmp[0] = 0x00;
 		for (i;i<MB_DIO_ITEMS;i++) {
 			mb_dio_config_item_t *p_cur_config = &p_dio_config->items[i];
-			char tmp_1[128];
 			if (p_cur_config->gpio_pin < 0x20) {
-				os_sprintf(tmp_1, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type:\":%d, \"Long_press:\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->long_press);
+				os_sprintf(data_str, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type\":%d, \"Long_press\":%d,\"Conf\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->long_press, dio_work->p_config > 0);
 			}
 			else {
-				os_sprintf(tmp_1, ", \"Dio%d\":\"UNCONFIGURED\"", i);
+				os_sprintf(data_str, ", \"Dio%d\":\"UNSET\"", i);
 			}
-			os_strcat(str_tmp, tmp_1);
+			os_strcat(str_tmp, data_str);
 		}
 
 		json_status(response, full_device_name, DEVICE_STATUS_OK, 
@@ -497,7 +496,10 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 				else if (jsonparse_strcmp_value(&parser, "Start") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					int tmpisStart = jsonparse_get_value_as_int(&parser);
-					MB_DIO_DEBUG("DIO:CFG:Started DIO!\n");
+					if (tmpisStart) {
+						is_post_cfg = true;
+						MB_DIO_DEBUG("DIO:CFG:Started DIO!\n");
+					}
 				} else if (tmp_ret = user_app_config_handler_part(&parser) != 0xFF){	// check for common app commands
 					MB_DIO_DEBUG("DIO:CFG:APPCONFIG:%d\n", tmp_ret);
 				}
@@ -508,6 +510,7 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 					do {
 						os_sprintf(tmp_str, "Output%d", cur_id);
 					} while ((jsonparse_strcmp_value(&parser, tmp_str) != 0) && ++cur_id<MB_DIO_ITEMS);
+					MB_DIO_DEBUG("DIO:CMD1:DIO%d\n", cur_id);
 					if (cur_id>=0 && cur_id<MB_DIO_ITEMS && dio_work[cur_id].p_config != NULL) {
 						is_post = false;
 						jsonparse_next(&parser);jsonparse_next(&parser);

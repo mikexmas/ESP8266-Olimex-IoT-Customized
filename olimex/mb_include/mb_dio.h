@@ -10,7 +10,7 @@
 		#define MB_DIO_DEVICE	"DIO"
 		#define MB_DIO_URL      "/dio"
 
-		#define MB_DIO_ITEMS		4		// default DIO items
+		#define MB_DIO_ITEMS		6		// default DIO items
 		#define MB_DIO_FLT_TOUT		50		// normal TOUT filter time to stabilize input ms
 		#define MB_DIO_FLT_LONG		1000	// normal TOUT filter time to stabilize input 
 		#define MB_DIO_LONG_PRESS	8000	// time to restore defaults (reset settings)
@@ -66,7 +66,7 @@
 			uint8 free1;
 			uint8 free2;
 			uint8 free3;
-			mb_dio_config_item_t items[MB_DIO_ITEMS];	// 4x7=27 + 1 = 28
+			mb_dio_config_item_t items[MB_DIO_ITEMS];	// 6x7=42 + 1 = 43
 		} mb_dio_config_t;
 
 		typedef struct {
