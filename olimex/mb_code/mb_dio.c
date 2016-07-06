@@ -7,6 +7,7 @@
 #include "osapi.h"
 #include "queue.h"
 #include "gpio.h"
+#include "mem.h"
 
 #include "json/jsonparse.h"
 
@@ -193,7 +194,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	// POST request - status & config only
 	if (req_type == MB_REQTYPE_POST) {
 		int i=0;
-		char str_tmp[1024];
+		//char str_tmp[1024];
+		char *str_tmp = (char *)os_malloc(1024);
 		str_tmp[0] = 0x00;
 		for (i;i<MB_DIO_ITEMS;i++) {
 			mb_dio_config_item_t *p_cur_config = &p_dio_config->items[i];
@@ -217,6 +219,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 				str_tmp
 			)
 		);
+		
+		os_free(str_tmp);
 
 	// event: do we want special format (thingspeak)
 	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only

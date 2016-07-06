@@ -9,8 +9,8 @@
 	#define WEBSOCKET_DEBUG            0
 	#define WEBSOCKET_VERBOSE_OUTPUT   0
 	
-	#define WEBSOCKET_KEEP_ALIVE       20
-	#define WEBSOCKET_TIMEOUT          5
+	#define WEBSOCKET_KEEP_ALIVE       60
+	#define WEBSOCKET_TIMEOUT          25
 	
 	typedef struct _websocket_header_ {
 		bool     fin;

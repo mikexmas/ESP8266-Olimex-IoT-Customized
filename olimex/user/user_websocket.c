@@ -373,7 +373,7 @@ LOCAL void ICACHE_FLASH_ATTR websocket_handle_message(connections_queue *request
 		if (websocket_authentication(msg)) {
 			char status[WEBSERVER_MAX_VALUE];
 			extra->authorized = true;
-			websocket_send_message(request->pURL, json_status(status, ESP8266, "Authorization success", NULL), pConnection);
+			websocket_send_message(request->pURL, json_status(status, wifi_station_get_hostname(), "Authorization success", NULL), pConnection);
 		} else {
 #if WEBSOCKET_DEBUG
 			debug("WebSocket: Unauthorized Message [%s] [%s]\n", request->pURL, msg);
@@ -774,6 +774,7 @@ LOCAL void ICACHE_FLASH_ATTR websocket_timeout(void *arg) {
 	STAILQ_FOREACH(request, &(websockets.head), entries) {
 		websocket_extra *extra = request->extra;
 		if (extra->timeout) {
+			debug("Websocket:Ping Timeout!\n");
 			websocket_close(request, request->pConnection, 1002, "Timeout");
 		}
 	}
