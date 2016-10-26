@@ -151,7 +151,7 @@ void ICACHE_FLASH_ATTR user_config_restore_defaults() {
 	debug("CONFIG: %s settings\n", RESTORED_DEFAULTS);
 	
 	char status[WEBSERVER_MAX_VALUE];
-	user_event_raise(NULL, json_status(status, ESP8266, RESTORED_DEFAULTS, NULL));
+	user_event_raise(NULL, json_status(status, wifi_station_get_hostname(), RESTORED_DEFAULTS, NULL));
 }
 
 void ICACHE_FLASH_ATTR user_config_load() {
@@ -587,7 +587,7 @@ LOCAL void ICACHE_FLASH_ATTR config_response(char *response, char *error, char *
 	if (error[0] != '\0') {
 		char data_buff[os_strlen(data) + 20];
 		json_error(
-			response, ESP8266, error,
+			response, wifi_station_get_hostname(), error,
 			json_sprintf(
 				data_buff,
 				"\"Data\" : {%s}",
@@ -595,7 +595,7 @@ LOCAL void ICACHE_FLASH_ATTR config_response(char *response, char *error, char *
 			)
 		);
 	} else {
-		json_data(response, ESP8266, OK_STR, data, NULL);
+		json_data(response, wifi_station_get_hostname(), OK_STR, data, NULL);
 	}
 }
 
@@ -1063,9 +1063,9 @@ void ICACHE_FLASH_ATTR config_stream_end_ssl(bool success) {
 	char status[WEBSERVER_MAX_VALUE];
 	
 	if (success) {
-		json_data(status, ESP8266, OK_STR, "", NULL);
+		json_data(status, wifi_station_get_hostname(), OK_STR, "", NULL);
 	} else {
-		json_error(status, ESP8266, flash_error(), EMPTY_DATA);
+		json_error(status, wifi_station_get_hostname(), flash_error(), EMPTY_DATA);
 	}
 	user_event_raise(webserver_chunk_url(), status);
 	config_restart();
@@ -1092,17 +1092,17 @@ void ICACHE_FLASH_ATTR config_ssl_handler(
 			config_stream_chunk(pConnection, data, data_len, 0, data_len == content_len);
 		}
 	} else {
-		json_data(response, ESP8266, OK_STR, "", NULL);
+		json_data(response, wifi_station_get_hostname(), OK_STR, "", NULL);
 	}
 #else
-	json_error(response, ESP8266, "SSL is not enabled", NULL);
+	json_error(response, wifi_station_get_hostname(), "SSL is not enabled", NULL);
 #endif
 }
 
 LOCAL void ICACHE_FLASH_ATTR config_firmware_json(char *json, const char *status, const char *bin) {
 	char firmware_str[WEBSERVER_MAX_VALUE];
 	json_data(
-		json, ESP8266, status,
+		json, wifi_station_get_hostname(), status,
 		config_firmware(firmware_str, bin),
 		NULL
 	);
@@ -1123,7 +1123,7 @@ void ICACHE_FLASH_ATTR config_stream_end_firmware(bool success) {
 		config_firmware_json(status, DONE, config_firmware_upgrade_bin());
 	} else {
 		system_upgrade_flag_set(UPGRADE_FLAG_IDLE);
-		json_error(status, ESP8266, flash_error(), EMPTY_DATA);
+		json_error(status, wifi_station_get_hostname(), flash_error(), EMPTY_DATA);
 	}
 	
 	user_event_raise(webserver_chunk_url(), status);

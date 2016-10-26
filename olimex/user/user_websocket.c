@@ -386,7 +386,7 @@ LOCAL void ICACHE_FLASH_ATTR websocket_handle_message(connections_queue *request
 		if (websocket_authentication(msg)) {
 			char status[WEBSERVER_MAX_VALUE];
 			extra->authorized = true;
-			websocket_send_message(request->pURL, json_status(status, ESP8266, "Authorization success", NULL), pConnection);
+			websocket_send_message(request->pURL, json_status(status, wifi_station_get_hostname(), "Authorization success", NULL), pConnection);
 		} else {
 #if WEBSOCKET_DEBUG
 			debug("WebSocket: Unauthorized Message [%s] [%s]\n", request->pURL, msg);
@@ -473,7 +473,7 @@ LOCAL void ICACHE_FLASH_ATTR websocket_handle_message(connections_queue *request
 	
 	if (callback == NULL) {
 		char error[WEBSERVER_MAX_VALUE];
-		user_websocket_event(cURL, json_error(error, ESP8266, "URL Not Found", NULL), pConnection);
+		user_websocket_event(cURL, json_error(error, wifi_station_get_hostname(), "URL Not Found", NULL), pConnection);
 		return;
 	}
 	

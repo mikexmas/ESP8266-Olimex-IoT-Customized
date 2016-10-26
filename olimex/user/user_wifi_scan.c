@@ -98,7 +98,7 @@ LOCAL void ICACHE_FLASH_ATTR wifi_scan_get_result(char *response) {
 		}
 		
 		webserver_set_status(200);
-		json_error(response, ESP8266, "Can not start scan", NULL);
+		json_error(response, wifi_station_get_hostname(), "Can not start scan", NULL);
 		return;
 	}
 	
@@ -122,7 +122,7 @@ LOCAL void ICACHE_FLASH_ATTR wifi_scan_get_result(char *response) {
 	
 	char data_str[WEBSERVER_MAX_VALUE*wifi_scan_ap_count];
 	json_data(
-		response, ESP8266, OK_STR,
+		response, wifi_station_get_hostname(), OK_STR,
 		json_sprintf(
 			data_str,
 			"\"WiFi\" : [%s]",
@@ -172,7 +172,7 @@ LOCAL void ICACHE_FLASH_ATTR wifi_scan_done(void *arg, STATUS status) {
 	
 	if (wifi_scan_ap_count == 0) {
 		json_data(
-			response, ESP8266, OK_STR,
+			response, wifi_station_get_hostname(), OK_STR,
 			"\"WiFi\" : []",
 			NULL
 		);

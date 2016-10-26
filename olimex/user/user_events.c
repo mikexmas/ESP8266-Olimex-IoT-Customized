@@ -23,7 +23,7 @@ void ICACHE_FLASH_ATTR user_event_server_connected() {
 	user_websocket_event(
 		USER_CONFIG_IOT_URL, 
 		json_data(
-			data, ESP8266, OK_STR, 
+			data, wifi_station_get_hostname(), OK_STR, 
 			json_sprintf(
 				buff, 
 				"\"Message\": \"%s\"", 
@@ -41,7 +41,7 @@ void ICACHE_FLASH_ATTR user_event_server_disconnected(const char *msg) {
 	user_websocket_event(
 		USER_CONFIG_IOT_URL, 
 		json_data(
-			data, ESP8266, DISCONNECTED, 
+			data, wifi_station_get_hostname(), DISCONNECTED, 
 			json_sprintf(
 				buff, 
 				"\"Message\": \"%s\"", 
@@ -78,7 +78,7 @@ void ICACHE_FLASH_ATTR user_event_reboot() {
 	debug("EVENTS: Reboot\n");
 #endif
 	char status[WEBSERVER_MAX_VALUE];
-	user_event_raise(NULL, json_status(status, ESP8266, REBOOTING, NULL));
+	user_event_raise(NULL, json_status(status, wifi_station_get_hostname(), REBOOTING, NULL));
 	websocket_close_all(REBOOTING, NULL);
 	long_poll_close_all();
 }
@@ -91,7 +91,7 @@ void ICACHE_FLASH_ATTR user_event_connect() {
 	char status[WEBSERVER_MAX_RESPONSE_LEN];
 	user_event_raise(
 		USER_CONFIG_STATION_URL, 
-		json_data(status, ESP8266, CONNECTED, (char *)config_wifi_station(), NULL)
+		json_data(status, wifi_station_get_hostname(), CONNECTED, (char *)config_wifi_station(), NULL)
 	);
 }
 
@@ -100,7 +100,7 @@ void ICACHE_FLASH_ATTR user_event_reconnect() {
 	debug("EVENTS: Reconnect station\n");
 #endif
 	char status[WEBSERVER_MAX_VALUE];
-	user_event_raise(NULL, json_status(status, ESP8266, RECONNECT, NULL));
+	user_event_raise(NULL, json_status(status, wifi_station_get_hostname(), RECONNECT, NULL));
 	websocket_close_all(RECONNECT, NULL);
 	long_poll_close_all();
 }
@@ -174,7 +174,7 @@ void ICACHE_FLASH_ATTR user_event_progress(uint8 progress) {
 	prev = progress;
 	char status[WEBSERVER_MAX_VALUE];
 	char progress_str[WEBSERVER_MAX_VALUE];
-	json_status(status, ESP8266, json_sprintf(progress_str, "Progress: %d\%", progress), NULL);
+	json_status(status, wifi_station_get_hostname(), json_sprintf(progress_str, "Progress: %d\%", progress), NULL);
 	
 #if EVENTS_DEBUG
 	debug("EVENTS: Progress [%d]\n", progress);
@@ -299,7 +299,7 @@ void ICACHE_FLASH_ATTR user_event_system_timer() {
 	user_event_raise(
 		NULL, 
 		json_status(
-			status, ESP8266, "SysTimer", 
+			status, wifi_station_get_hostname(), "SysTimer", 
 			json_sprintf(
 				data,
 				"\"Timer\": %d",

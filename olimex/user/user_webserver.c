@@ -87,7 +87,7 @@ void ICACHE_FLASH_ATTR default_handler(
 	}
 	
 	json_data(
-		response, ESP8266, OK_STR, 
+		response, wifi_station_get_hostname(), OK_STR, 
 		json_sprintf(
 			data_str,
 			"\"URLs\" : [%s]",

@@ -306,7 +306,7 @@ LOCAL void ICACHE_FLASH_ATTR webclient_raise_reconnect() {
 	user_event_raise(
 		NULL, 
 		json_status(
-			status, ESP8266, "WebSocket Reconnect", 
+			status, wifi_station_get_hostname(), "WebSocket Reconnect", 
 			json_sprintf(
 				data,
 				"\"FreeHeap\" : %d",
