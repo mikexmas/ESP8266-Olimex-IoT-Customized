@@ -91,7 +91,7 @@ void ICACHE_FLASH_ATTR user_event_connect() {
 	char status[WEBSERVER_MAX_RESPONSE_LEN];
 	user_event_raise(
 		USER_CONFIG_STATION_URL, 
-		json_data(status, wifi_station_get_hostname(), CONNECTED, (char *)config_wifi_station(), NULL)
+		json_data(status, wifi_station_get_hostname(), CONNECTED, (char *)config_wifi_station_ip(), NULL)
 	);
 }
 
@@ -253,11 +253,7 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 			user_config_events_user(),
 			user_config_events_password(),
 			user_config_events_server(),
-			user_config_events_ssl() ?
-				WEBSERVER_SSL_PORT
-				:
-				WEBSERVER_PORT
-			,
+			user_config_events_port(),
 			user_config_events_path(),
 			event
 		);
@@ -267,11 +263,7 @@ void ICACHE_FLASH_ATTR user_event_raise(char *url, char *data) {
 			user_config_events_user(),
 			user_config_events_password(),
 			user_config_events_server(),
-			user_config_events_ssl() ?
-				WEBSERVER_SSL_PORT
-				:
-				WEBSERVER_PORT
-			,
+			user_config_events_port(),
 			user_config_events_path(),
 			event
 		);
