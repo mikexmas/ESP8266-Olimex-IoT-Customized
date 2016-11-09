@@ -1,0 +1,10 @@
+LICENSE
+MANIFEST.in
+README.md
+esptool.py
+setup.py
+esptool.egg-info/PKG-INFO
+esptool.egg-info/SOURCES.txt
+esptool.egg-info/dependency_links.txt
+esptool.egg-info/requires.txt
+esptool.egg-info/top_level.txt
