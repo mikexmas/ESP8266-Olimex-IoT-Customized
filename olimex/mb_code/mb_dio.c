@@ -92,8 +92,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_intr_timer_long_press(mb_dio_work_t *p_work)
 	// if its still pressed
 	if (handled && p_work->state == 0x01) {
 		MB_DIO_DEBUG("DIO:Intr:LONG PRESS:Index:%d,Gpio:%d,State:%d,Old:%d\n", p_work->index, p_work->p_config->gpio_pin, p_work->state, p_work->state_old);
-		//user_config_restore_defaults();
-		//user_config_load();
+		user_config_restore_defaults();
+		user_config_load();
 	}
 }
 
@@ -175,6 +175,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
 	if (p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK || p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {	// special messaging
 		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
+		MB_DIO_DEBUG("DIO:sendstate:%s\n", response);
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 	}
 	mb_dio_set_response(response, p_work, MB_REQTYPE_NONE);
