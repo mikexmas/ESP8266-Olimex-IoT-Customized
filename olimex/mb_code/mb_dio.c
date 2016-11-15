@@ -37,6 +37,10 @@ LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_
 LOCAL void mb_dio_set_output(mb_dio_work_t *p_work);
 LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
+#if MB_ACTIONS_ENABLE
+mb_action_data_t mb_dio_action_data;
+#endif
+
 // GPIO interruot timer to determine stabile output; exe for both NORMAL & LONG
 LOCAL uint8 ICACHE_FLASH_ATTR mb_dio_intr_timer_exe(mb_dio_work_t *p_work) {
 	os_timer_disarm(&p_work->timer);
@@ -178,6 +182,13 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 		MB_DIO_DEBUG("DIO:sendstate:%s\n", response);
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 	}
+#if MB_ACTIONS_ENABLE
+	if (p_work->state == 1 && p_work->p_config->action >= MB_ACTIONTYPE_FIRST && p_work->p_config->action <= MB_ACTIONTYPE_LAST) {
+		mb_dio_action_data.action_type = p_work->p_config->action;
+		mb_dio_action_data.value = 1;
+		setTimeout(mb_action_post, &mb_dio_action_data, 10);
+	}
+#endif
 	mb_dio_set_response(response, p_work, MB_REQTYPE_NONE);
 	user_event_raise(MB_DIO_URL, response);
 	return;
@@ -201,7 +212,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		for (i;i<MB_DIO_ITEMS;i++) {
 			mb_dio_config_item_t *p_cur_config = &p_dio_config->items[i];
 			if (p_cur_config->gpio_pin < 0x20) {
-				os_sprintf(data_str, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type\":%d, \"Long_press\":%d,\"Conf\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->long_press, dio_work->p_config > 0);
+				os_sprintf(data_str, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type\":%d, \"Action\":%d, \"Long_press\":%d,\"Conf\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->action, p_cur_config->long_press, dio_work->p_config > 0);
 			}
 			else {
 				os_sprintf(data_str, ", \"Dio%d\":\"UNSET\"", i);
@@ -490,7 +501,15 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 						p_config->items[current_dio_id].post_type = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Post_type:%d\n", p_config->items[current_dio_id].post_type);
 					}
-				} else if (jsonparse_strcmp_value(&parser, "Long_press") == 0) {
+				} else if (jsonparse_strcmp_value(&parser, "Action") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
+						is_post_cfg = true;
+						p_config->items[current_dio_id].action = jsonparse_get_value_as_int(&parser);
+						MB_DIO_DEBUG("DIO:CFG:Action:%d\n", p_config->items[current_dio_id].action);
+					}
+				}
+				else if (jsonparse_strcmp_value(&parser, "Long_press") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						is_post_cfg = true;

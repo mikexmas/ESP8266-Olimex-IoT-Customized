@@ -51,7 +51,7 @@
 			
 			uint8 post_type;	// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
 			uint8 long_press;	// long press detection; restore defaults
-			uint8 free2;
+			uint8 action;		// Actions
 			uint8 free3;
 			
 			uint32 pls_on;		// length of the pulse (mseconds)

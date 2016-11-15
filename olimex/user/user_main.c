@@ -144,10 +144,7 @@ void ICACHE_FLASH_ATTR user_init(void) {
 	flash_region_register("user-config",  0x100, 0x001);
 	flash_region_register("PrivateKey",   0x101, 0x001);
 	flash_region_register("Certificate",  0x102, 0x001);
-	/* MihaB changed; I have there settings */
-	// flash_region_register("Preferences",  0x103, 0x001);
-	flash_region_register("Preferences",  0x104, 0x001);
-	/* End MihaB Change */
+	flash_region_register("Preferences",  0x103, 0x001);
 	
 	preferences_init();
 	
