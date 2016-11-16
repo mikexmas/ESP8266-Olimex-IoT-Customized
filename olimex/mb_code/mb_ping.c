@@ -45,11 +45,16 @@ mb_action_data_t mb_ping_action_data;
 LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
 	bool ret = false;
 	float readVal = 0.0f;
+	
+	// INIT for the first time; otherwise it is reset
+	if (pingData.isInitiated == false)
+		ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
 
 	// max distance may be inverse to measure level of liquid (max_distance defines height of barrel); in this case max waiting echo time is more than height
 	if (ping_ping(&pingData,
 				(p_ping_config->max_distance < 0.0f ? uhl_fabs(p_ping_config->max_distance) * 1.25f : p_ping_config->max_distance),
 				&readVal)) {
+					
 		if (p_ping_config->max_distance < 0.0f)
 			mb_ping_val = uhl_fabs(p_ping_config->max_distance) - readVal + p_ping_config->offset;
 		else
@@ -137,14 +142,14 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 		signal_name[0] = 0x00;
 		os_sprintf(signal_name, "%s[%s]", 
 			(os_strlen(p_ping_config->name) == 0 ? "PING" : p_ping_config->name),
-			mb_limits_notified_str);
+			mb_limits_notified_str);		
 		json_sprintf(
 			response,
 			"{\"value1\":\"%s\",\"value2\":\"%s\"}",
 			signal_name,
 			mb_ping_val_str
 		);
-
+		
 	// normal event measurement
 	} else {
 		json_data(
@@ -166,7 +171,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 	LOCAL uint8 count = 0;
 	LOCAL uint8 errCount =0;
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
-	
+		
 	if (ping_read_from_sensor()) {
 		count++;
 		errCount=0;
@@ -230,7 +235,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 			
 			// Special=> Thingsspeak
 			if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
-				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);	
+				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
 			}
 
@@ -382,6 +387,8 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 	webserver_register_handler_callback(MB_PING_URL, mb_ping_handler);
 	device_register(NATIVE, 0, MB_PING_DEVICE, MB_PING_URL, NULL, NULL);
 	
+	pingData.isInitiated = false;
+	
 	if (!user_app_config_is_config_valid())
 	{
 		p_ping_config->autostart = MB_PING_AUTOSTART;
@@ -404,6 +411,7 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 	if (isStartReading) {
 		ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
 		mb_ping_timer_init(true);
+		pingData.isInitiated = false; 	// dirty => make init for realy first reading
 	}
 }
 

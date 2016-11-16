@@ -22,12 +22,6 @@ void ICACHE_FLASH_ATTR mb_main() {
 	mb_dio_init();
 #endif
 
-#if MB_PCD8544_ENABLE
-	// just for test
-	PCD8544_Settings *tmppcd;
-	PCD8544_init(tmppcd);
-#endif
-
 }
 
 #if MB_ACTIONS_ENABLE

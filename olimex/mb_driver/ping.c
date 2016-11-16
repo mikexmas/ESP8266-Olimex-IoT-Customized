@@ -137,9 +137,10 @@ ping_pingUs(Ping_Data *pingData, uint32_t maxPeriod, uint32_t* response) {
 
   GPIO_DIS_OUTPUT(echoPin);
   gpio_pin_intr_state_set(GPIO_ID_PIN(echoPin), GPIO_PIN_INTR_POSEDGE);
-
+  
   while (!ping_echoEnded) {
     if (system_get_time() > timeOutAt) {
+		os_printf("ping_ping: Step2: %d/%d\n", system_get_time(),timeOutAt);
       *response = system_get_time() - ping_timeStamp0;
       ping_disableInterrupt(ping_currentEchoPin);
       ping_currentEchoPin = -1;
@@ -147,7 +148,7 @@ ping_pingUs(Ping_Data *pingData, uint32_t maxPeriod, uint32_t* response) {
     }
     os_delay_us(PING_POLL_PERIOD);
   }
-
+  
   *response = ping_timeStamp1 - ping_timeStamp0;
   if (ping_timeStamp1 < ping_timeStamp0 || *response < 50) {
     // probably a previous echo or clock overflow - false result
