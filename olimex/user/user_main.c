@@ -70,7 +70,7 @@ void ICACHE_FLASH_ATTR user_rf_pre_init(void) {
 void ICACHE_FLASH_ATTR user_init_done() {
 	debug("\nINIT: Done\n\n");
 	/* MihaB added */
-	mb_main();
+	setTimeout(mb_main, NULL, 2000);
 	/* End MihaB Added */
 }
 
@@ -167,6 +167,7 @@ void ICACHE_FLASH_ATTR user_init(void) {
 #if MOD_EMTR_ENABLE
 	mod_emtr_init();
 #endif
+
 	devices_init();
 	
 	debug("\n\nSDK version: %s\n", system_get_sdk_version());

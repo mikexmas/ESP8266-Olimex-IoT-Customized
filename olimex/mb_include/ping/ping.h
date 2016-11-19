@@ -51,6 +51,8 @@ typedef struct {
   Ping_Unit unit;
 } Ping_Data;
 
+void ping_intr_handler(void *arg);
+
 /**
  * Sends a ping, and returns the number of microseconds it took to receive a response.
  * Will give up after maxPeriod (with false as return value)

@@ -47,8 +47,15 @@
 	#include "mb_ping.h"
 	#include "mb_dio.h"
 	
-	#include "pcd8544/pcd8544.h"
-
+	//#include "pcd8544/pcd8544.h"
+	
+	#define MB_INTERRUPT_MAX_NUM 10
+	/* Interrunt definition */
+	typedef struct {
+		uint8 pin;
+		void (*interruptHandler)(void *arg);
+	} mb_interrupt_t;
+	
 	void mb_main();
 	
 #if MB_ACTIONS_ENABLE

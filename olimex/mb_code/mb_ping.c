@@ -46,10 +46,6 @@ LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
 	bool ret = false;
 	float readVal = 0.0f;
 	
-	// INIT for the first time; otherwise it is reset
-	if (pingData.isInitiated == false)
-		ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
-
 	// max distance may be inverse to measure level of liquid (max_distance defines height of barrel); in this case max waiting echo time is more than height
 	if (ping_ping(&pingData,
 				(p_ping_config->max_distance < 0.0f ? uhl_fabs(p_ping_config->max_distance) * 1.25f : p_ping_config->max_distance),
@@ -368,6 +364,7 @@ void ICACHE_FLASH_ATTR mb_ping_handler(
 
 		if (is_post) {
 			ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
+			mb_intr_add(p_ping_config->echo_pin, ping_intr_handler);
 			if (start_cmd != -1)
 				mb_ping_timer_init(start_cmd == 1);
 		}
@@ -410,8 +407,9 @@ void ICACHE_FLASH_ATTR mb_ping_init(bool isStartReading) {
 
 	if (isStartReading) {
 		ping_init(&pingData, p_ping_config->trigger_pin, p_ping_config->echo_pin, p_ping_config->units);
+		// mark interrupt pin
+		mb_intr_add(p_ping_config->echo_pin, ping_intr_handler);
 		mb_ping_timer_init(true);
-		pingData.isInitiated = false; 	// dirty => make init for realy first reading
 	}
 }
 

@@ -49,7 +49,7 @@ static volatile uint32_t   ping_allEchoPins = 0; // a mask containing all of the
 
 // forward declarations
 static void ping_disableInterrupt(int8_t pin);
-static void ping_intr_handler(void *arg);
+//static void ping_intr_handler(void *arg);
 
 static void
 ping_disableInterrupt(int8_t pin) {
@@ -58,8 +58,7 @@ ping_disableInterrupt(int8_t pin) {
   }
 }
 
-static void
-ping_intr_handler(void *arg) {
+void ping_intr_handler(void *arg) {
   uint32_t gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
   if (ping_allEchoPins & gpio_status) {
     if (ping_currentEchoPin>=0 && (gpio_status & BIT(ping_currentEchoPin))) {
@@ -140,7 +139,6 @@ ping_pingUs(Ping_Data *pingData, uint32_t maxPeriod, uint32_t* response) {
   
   while (!ping_echoEnded) {
     if (system_get_time() > timeOutAt) {
-		os_printf("ping_ping: Step2: %d/%d\n", system_get_time(),timeOutAt);
       *response = system_get_time() - ping_timeStamp0;
       ping_disableInterrupt(ping_currentEchoPin);
       ping_currentEchoPin = -1;

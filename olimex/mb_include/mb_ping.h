@@ -4,7 +4,7 @@
 	#include "mb_main.h"
 			
 	#if MB_PING_ENABLE
-		#define MB_PING_DEBUG 0
+		#define MB_PING_DEBUG 1
 		
 		void mb_ping_init(bool isStartReading);
 		

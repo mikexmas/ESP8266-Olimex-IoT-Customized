@@ -318,40 +318,47 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 	EasyGPIO_PullStatus pin_stat = -1;
 	EasyGPIO_PinMode pin_mode = 0;
 	GPIO_INT_TYPE pin_trig = GPIO_PIN_INTR_ANYEDGE;		// input trigger
+	bool reqInt = false;
 	switch (p_cur_config->type) {
 	case DIO_IN_NOPULL:
 	case DIO_IN_NOPULL_LONG:
 		pin_stat = EASYGPIO_NOPULL;
 		pin_mode = EASYGPIO_INPUT;
+		reqInt = true;
 		break;
 	case DIO_IN_PULLUP:
 	case DIO_IN_PULLUP_LONG:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_INPUT;
+		reqInt = true;
 		break;
 	case DIO_IN_PU_POS:
 	case DIO_IN_PU_POS_LONG:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_INPUT;
 		pin_trig = GPIO_PIN_INTR_POSEDGE;
+		reqInt = true;
 		break;
 	case DIO_IN_NP_POS:
 	case DIO_IN_NP_POS_LONG:
 		pin_stat = EASYGPIO_NOPULL;
 		pin_mode = EASYGPIO_INPUT;
 		pin_trig = GPIO_PIN_INTR_POSEDGE;
+		reqInt = true;
 		break;
 	case DIO_IN_PU_NEG:
 	case DIO_IN_PU_NEG_LONG:
 		pin_stat = EASYGPIO_PULLUP;
 		pin_mode = EASYGPIO_INPUT;
 		pin_trig = GPIO_PIN_INTR_NEGEDGE;
+		reqInt = true;
 		break;
 	case DIO_IN_NP_NEG:
 	case DIO_IN_NP_NEG_LONG:
 		pin_stat = EASYGPIO_NOPULL;
 		pin_mode = EASYGPIO_INPUT;
 		pin_trig = GPIO_PIN_INTR_NEGEDGE;
+		reqInt = true;
 		break;
 
 	case DIO_OUT_NOPULL:
@@ -394,6 +401,10 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 			}
 		} else {
 			MB_DIO_DEBUG("DIO:INIT_FAILED:Index:%d,Gpio:%d\n", index, pin);
+		}
+		
+		if (reqInt) {
+			mb_intr_add(pin, mb_dio_intr_handler);
 		}
 		
 	}
