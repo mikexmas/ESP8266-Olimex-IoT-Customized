@@ -553,6 +553,27 @@ LOCAL void ICACHE_FLASH_ATTR webclient_recv(void *arg, char *pData, unsigned sho
 	
 	// close if we are happy with data
 	if (is_close_conn) {
+		// MIHAB Added
+		// send received data to handler; but only in some cases: GET
+		if (request->method == GET) {
+			char *pContent;
+			uint32 length;
+			if (webserver_content(pData, &pContent, &length)) {
+				http_handler_callback pHandler = NULL;
+				pHandler = webserver_find_handler(request->path);
+				if (pHandler != NULL) {
+					// copy response data to buffer, becuse connection is going to close and release memory
+					char *pCpyContent;
+					pCpyContent = (char *)os_zalloc(os_strlen(pContent)+2);
+					if (pCpyContent) {
+						os_strcpy(pCpyContent, pContent, os_strlen(pContent)+1);
+						setTimeout((os_timer_func_t *)pHandler, pCpyContent, 50);
+					}
+				}
+			}
+		}
+		// End MIhaB Added
+		
 		setTimeout(
 #if SSL_ENABLE	
 			connection->proto.tcp->remote_port == WEBSERVER_SSL_PORT || request->ssl ?
@@ -563,7 +584,7 @@ LOCAL void ICACHE_FLASH_ATTR webclient_recv(void *arg, char *pData, unsigned sho
 			, 
 			arg,
 			100
-		);
+		);	
 	}
 }
 

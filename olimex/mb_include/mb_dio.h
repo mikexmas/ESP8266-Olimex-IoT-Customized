@@ -5,10 +5,11 @@
 	
 	#if MB_DIO_ENABLE
 	
-		#define MB_DIO_DEBUG 0
+		#define MB_DIO_DEBUG 1
 
 		#define MB_DIO_DEVICE	"DIO"
 		#define MB_DIO_URL      "/dio"
+		#define MB_DIO_URL_GET	"/dio.json"
 
 		#define MB_DIO_ITEMS		6		// default DIO items
 		#define MB_DIO_FLT_TOUT		50		// normal TOUT filter time to stabilize input ms
@@ -52,7 +53,7 @@
 			uint8 post_type;	// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
 			uint8 long_press;	// long press detection; restore defaults
 			uint8 action;		// Actions
-			uint8 free3;
+			uint8 free;		// Pull data from server (get) in 10s for outputs
 			
 			uint32 pls_on;		// length of the pulse (mseconds)
 			uint32 pls_off;		// length of the pulse OFF(mseconds)
@@ -62,8 +63,8 @@
 		} mb_dio_config_item_t;
 		
 		typedef struct {
-			uint8 autostart;
-			uint8 free1;
+			uint8 autostart;	// Auto start dio
+			uint8 pull_10s;		// PULL data from iot server on 10x seconds
 			uint8 free2;
 			uint8 free3;
 			mb_dio_config_item_t items[MB_DIO_ITEMS];	// 6x7=42 + 1 = 43

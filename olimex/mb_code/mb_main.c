@@ -6,13 +6,11 @@ mb_interrupt_t mb_interrupts[MB_INTERRUPT_MAX_NUM];
 
 // GPIO interrupt handler
 LOCAL void mb_main_intr_handler(void *arg) {
-	uint32_t gpio_status = GPIO_REG_READ(GPIO_STATUS_ADDRESS);
-  
 	int i=0;
 	mb_interrupt_t *pcurInt = (mb_interrupt_t *)NULL;
 	for (i;i<MB_INTERRUPT_MAX_NUM;i++) {
 		pcurInt = &mb_interrupts[i];
-		if ((gpio_status & BIT(pcurInt->pin)) && pcurInt->interruptHandler) {
+		if ((GPIO_REG_READ(GPIO_STATUS_ADDRESS) & BIT(pcurInt->pin)) && pcurInt->interruptHandler) {
 			(pcurInt->interruptHandler(arg));
 		}
 	}
@@ -20,7 +18,7 @@ LOCAL void mb_main_intr_handler(void *arg) {
 
 void ICACHE_FLASH_ATTR mb_main() {
 
-	// init itnerruots pouinters
+	// init itnerruots pointers
 	int i=0;
 	for (i=0;i<MB_INTERRUPT_MAX_NUM;i++) {
 		mb_interrupt_t *pcurInt = &mb_interrupts[i];

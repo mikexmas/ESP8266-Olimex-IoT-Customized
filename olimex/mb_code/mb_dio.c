@@ -37,6 +37,8 @@ LOCAL void mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_
 LOCAL void mb_dio_set_output(mb_dio_work_t *p_work);
 LOCAL void mb_dio_send_state(mb_dio_work_t *p_work);
 
+LOCAL volatile uint32 dio_pull_timer;
+
 #if MB_ACTIONS_ENABLE
 mb_action_data_t mb_dio_action_data;
 #endif
@@ -174,13 +176,13 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 	return;
 }
 
-// Helper to prepare and send rerspone
+// Helper to prepare and send respone
 LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
 	if (p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK || p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {	// special messaging
 		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
 		MB_DIO_DEBUG("DIO:sendstate:%s\n", response);
-		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 	}
 #if MB_ACTIONS_ENABLE
 	if (p_work->state == 1 && p_work->p_config->action >= MB_ACTIONTYPE_FIRST && p_work->p_config->action <= MB_ACTIONTYPE_LAST) {
@@ -198,9 +200,9 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *p_work, uint8 req_type) {
 	char data_str[WEBSERVER_MAX_RESPONSE_LEN];
 	char full_device_name[USER_CONFIG_USER_SIZE];
-	
+
 	mb_make_full_device_name(full_device_name, MB_DIO_DEVICE, USER_CONFIG_USER_SIZE);
-	
+
 	MB_DIO_DEBUG("DIO web response preparing:req.type:%d\n",req_type);
 	
 	// POST request - status & config only
@@ -212,10 +214,10 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		for (i;i<MB_DIO_ITEMS;i++) {
 			mb_dio_config_item_t *p_cur_config = &p_dio_config->items[i];
 			if (p_cur_config->gpio_pin < 0x20) {
-				os_sprintf(data_str, ", \"Dio%d\":{\"Gpio\": %d, \"Type\":%d, \"Init\": %d, \"Inv\": %d, \"Pls_on\": %d, \"Pls_off\": %d, \"Name\":\"%s\", \"Post_type\":%d, \"Action\":%d, \"Long_press\":%d,\"Conf\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->action, p_cur_config->long_press, dio_work->p_config > 0);
+				os_sprintf(data_str, ", \"Dio%d\":{\"Gpio\":%d, \"Type\":%d, \"Init\":%d, \"Inv\":%d, \"Pls_on\":%d, \"Pls_off\":%d, \"Name\":\"%s\", \"Post_type\":%d, \"Action\":%d, \"Long_press\":%d,\"Conf\":%d}", i, p_cur_config->gpio_pin, p_cur_config->type, p_cur_config->init_state, p_cur_config->inverse, p_cur_config->pls_on, p_cur_config->pls_off, p_cur_config->name, p_cur_config->post_type, p_cur_config->action, p_cur_config->long_press, dio_work->p_config > 0);
 			}
 			else {
-				os_sprintf(data_str, ", \"Dio%d\":\"UNSET\"", i);
+				os_sprintf(data_str, ", \"Dio%d\":\"/\"", i);
 			}
 			os_strcat(str_tmp, data_str);
 		}
@@ -224,10 +226,12 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 			json_sprintf(
 				data_str, 
 				"\"Config\" : {"
-					"\"Auto\":%d"
+					"\"Auto\":%d,"
+					"\"Pull10s\":%d"
 					"%s"
 				"}",
 				p_dio_config->autostart,
+				p_dio_config->pull_10s,
 				str_tmp
 			)
 		);
@@ -307,6 +311,22 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 	}
 }
 
+// GET request callback when get data received
+void ICACHE_FLASH_ATTR mb_dio_webclient_get_cb(struct espconn *pConnection, request_method method, char *url, char *data, uint16 data_len, uint32 content_len, char *response, uint16 response_len) {
+	char *presp = (char*)pConnection;
+	MB_DIO_DEBUG("DIO:WCGET:%s %d\n", presp, os_strlen(presp));
+	mb_dio_handler(NULL, POST, NULL, presp, os_strlen(presp), 0, NULL, 0);
+	os_free(presp);
+}
+
+// make GET on timer reguest 
+LOCAL void ICACHE_FLASH_ATTR mb_dio_webclient_get() {
+	char path[64];
+	os_sprintf(path, "%s", MB_DIO_URL_GET);		// TODO: what about prefix ???
+	MB_DIO_DEBUG("DIO:GET:%s\n", path);
+	webclient_get(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), path);
+}
+
 /* HW init from config */
 LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 	bool rv = false;
@@ -380,7 +400,19 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 			if (pin_mode == EASYGPIO_INPUT) {
 				if (easygpio_attachInterrupt(pin, pin_stat, mb_dio_intr_handler, NULL)) {
 					gpio_pin_intr_state_set(GPIO_ID_PIN(pin), pin_trig);
-					p_cur_work->state = (p_cur_work->p_config->inverse ? 1 : 0);
+					// read current state
+					p_cur_work->state_new = GPIO_INPUT_GET(p_cur_work->p_config->gpio_pin);
+
+					// timer to determine stability of signal: it is settable
+					os_timer_disarm(&p_cur_work->timer);
+					os_timer_setfn(&p_cur_work->timer, (os_timer_func_t *)mb_dio_intr_timer, p_cur_work);
+					os_timer_arm(&p_cur_work->timer, p_cur_work->flt_time, 0);
+					if (p_cur_work->p_config->long_press == 0x01) {
+						os_timer_disarm(&p_cur_work->timer2);
+						os_timer_setfn(&p_cur_work->timer2, (os_timer_func_t *)mb_dio_intr_timer_long_press, p_cur_work);
+						os_timer_arm(&p_cur_work->timer2, MB_DIO_LONG_PRESS, 0);
+					}
+					p_cur_work->state = (p_cur_work->p_config->inverse ? !p_cur_work->state_new : p_cur_work->state_new);
 					p_cur_work->state_old = !p_cur_work->state;
 					if (p_cur_config->type >= DIO_IN_NOPULL_LONG && p_cur_config->type <= DIO_IN_NP_NEG_LONG)	// long filter pulse ?
 						p_cur_work->flt_time = MB_DIO_FLT_LONG;
@@ -406,7 +438,6 @@ LOCAL bool ICACHE_FLASH_ATTR mb_dio_hw_init(int index) {
 		if (reqInt) {
 			mb_intr_add(pin, mb_dio_intr_handler);
 		}
-		
 	}
 	return rv;
 }
@@ -416,6 +447,11 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_hw_init_all() {
 	int i=0;
 	for (i;i<MB_DIO_ITEMS;i++) {
 		mb_dio_hw_init(i);
+	}
+	
+	clearTimeout(dio_pull_timer);
+	if (p_dio_config->pull_10s > 0 && p_dio_config->pull_10s < 255) {
+		dio_pull_timer = setInterval(mb_dio_webclient_get, NULL, p_dio_config->pull_10s*10000);
 	}
 }
 
@@ -519,8 +555,12 @@ void ICACHE_FLASH_ATTR mb_dio_handler(
 						p_config->items[current_dio_id].action = jsonparse_get_value_as_int(&parser);
 						MB_DIO_DEBUG("DIO:CFG:Action:%d\n", p_config->items[current_dio_id].action);
 					}
-				}
-				else if (jsonparse_strcmp_value(&parser, "Long_press") == 0) {
+				} else if (jsonparse_strcmp_value(&parser, "Pull10s") == 0) {
+					jsonparse_next(&parser);jsonparse_next(&parser);
+					is_post_cfg = true;
+					p_config->pull_10s = jsonparse_get_value_as_int(&parser);
+					MB_DIO_DEBUG("DIO:CFG:Pull10s:%d\n", p_config->pull_10s);
+				} else if (jsonparse_strcmp_value(&parser, "Long_press") == 0) {
 					jsonparse_next(&parser);jsonparse_next(&parser);
 					if (current_dio_id>=0 && current_dio_id<MB_DIO_ITEMS) {
 						is_post_cfg = true;
@@ -584,17 +624,29 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 	p_dio_config = (mb_dio_config_t *)p_user_app_config_data->dio;		// set proper structure in app settings
 		
 	webserver_register_handler_callback(MB_DIO_URL, mb_dio_handler);
+	webserver_register_handler_callback(MB_DIO_URL_GET, mb_dio_webclient_get_cb);
 	device_register(NATIVE, 0, MB_DIO_DEVICE, MB_DIO_URL, NULL, NULL);
 
 	if (!user_app_config_is_config_valid())
 	{
 		p_dio_config->autostart = false;
+		p_dio_config->pull_10s =0;		// Pull data from server (get) in 10s for outputs
 		int i=0;
 		for (i;i<MB_DIO_ITEMS;i++) {
-			p_dio_config->items[i].gpio_pin = 0xFF;	// make invalid for sure
+			p_dio_config->items[i].gpio_pin = 0xFF;		// make invalid for sure
+			p_dio_config->items[i].type = 0x00;			// 0=none,...mb_dio_type_t
+			p_dio_config->items[i].init_state = 0;		// output init state
+			p_dio_config->items[i].inverse = 0;			// 1= inverse logic of electrical state
+			
+			p_dio_config->items[i].post_type = 0;		// POST TYPE: Normal / ThingSpeak / IFTTT Maker Channel (Low/Hi limits Sending)
+			p_dio_config->items[i].long_press = 0;		// long press detection; restore defaults
+			p_dio_config->items[i].action=0;			// Actions
+			
+			p_dio_config->items[i].pls_on = 0;			// length of the pulse (mseconds)
+			p_dio_config->items[i].pls_off = 0;			// length of the pulse OFF(mseconds)
 		}
 
-		MB_DIO_DEBUG("DIO:Init with defaults, no defaults!");
+		MB_DIO_DEBUG("DIO:Init with defaults!");
 	}
 	
 	if (!isStartReading)

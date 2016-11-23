@@ -10,7 +10,7 @@
 	
 	#define USE_OPTIMIZE_PRINTF
 	
-	#define CONNECTIONS_DEBUG                  1
+	#define CONNECTIONS_DEBUG                  0
 	#define WIFI_DEBUG_ENABLE                  0
 	
 	#define SSL_ENABLE                       SSL

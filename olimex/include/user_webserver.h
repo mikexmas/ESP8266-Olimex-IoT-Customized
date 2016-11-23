@@ -125,4 +125,6 @@
 	
 	void webserver_queue_message(connections_queue *request, uint8 *data, uint16 data_len);
 	messages_queue *webserver_fetch_message(connections_queue *request);
+	
+	bool ICACHE_FLASH_ATTR webserver_content(char *pData, char **pContent, uint32 *length);
 #endif

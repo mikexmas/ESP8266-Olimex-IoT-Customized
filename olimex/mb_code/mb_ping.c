@@ -205,7 +205,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 
 			if (make_event && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
 				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
-				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 
 #if MB_ACTIONS_ENABLE			
@@ -232,7 +232,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 			// Special=> Thingsspeak
 			if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
-				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 
 			mb_ping_set_response(response, false, MB_REQTYPE_NONE);

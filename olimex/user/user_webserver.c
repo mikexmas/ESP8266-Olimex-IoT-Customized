@@ -967,7 +967,7 @@ LOCAL bool ICACHE_FLASH_ATTR webserver_abs_url(char *pData, char *pURL, uint16 l
  *                length - content length
  * Returns      : boolean
 *******************************************************************************/
-LOCAL bool ICACHE_FLASH_ATTR webserver_content(char *pData, char **pContent, uint32 *length) {
+bool ICACHE_FLASH_ATTR webserver_content(char *pData, char **pContent, uint32 *length) {
 	*pContent = NULL;
 	*length = 0;
 	

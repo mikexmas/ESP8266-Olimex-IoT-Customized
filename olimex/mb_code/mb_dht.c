@@ -290,7 +290,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 			// Special handling; notify once only when limit exceeded
 			if (make_event && p_dht_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
 				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);
-				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 #if MB_ACTIONS_ENABLE			
 			if (make_event && p_dht_config->action >= MB_ACTIONTYPE_FIRST && p_dht_config->action <= MB_ACTIONTYPE_LAST) {	// ACTION: DIO
@@ -321,7 +321,7 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 			// Thinspeak 
 			if (p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
 				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
-				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_ssl() ? WEBSERVER_SSL_PORT : WEBSERVER_PORT, user_config_events_path(), response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 
 			// Standard event - send anyway,ifttt/ts is additional sent before
