@@ -26,6 +26,9 @@
 	#define MB_POSTTYPE_IFTTT		2			// Send to IFTTT when limits exceeded or other condition meet
 	#define MB_POSTTYPE_UNSET		255 		// This is actually default FLASH memory value and meand default posttaype
 	// ... it may be combined/ THINGSPEAK+IFTTT or normal 
+	// fixed URL of IFTTT
+	#define MB_POSTHOST_IFTTT		"maker.ifttt.com"
+	//#define MB_POSTHOST_IFTTT_SUF 	"triggernamejeto/with/key/bJUGFdVrwPWOpEBIwDnmcg"
 	
 	#define MB_ACTIONTYPE_NONE		0			// No internal action
 	#define MB_ACTIONTYPE_DIO_0		1			// DIO / dugital Out set 1
@@ -69,6 +72,10 @@
 	} mb_action_data_t;
 	
 	void mb_action_post(mb_action_data_t *p_act_data);
+	
+	char *mb_gethost_ifttt();
+	
+	char *mb_getpath_ifttt();
 	
 #endif
 

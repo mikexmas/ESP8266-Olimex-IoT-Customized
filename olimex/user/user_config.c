@@ -49,8 +49,8 @@ LOCAL void ICACHE_FLASH_ATTR user_config_station_connect() {
 	}
 	
 	if (status != STATION_CONNECTING) {
-		setTimeout((os_timer_func_t *)wifi_station_connect, NULL, 2000);
-		setTimeout((os_timer_func_t *)wifi_auto_detect,  NULL, 3000);
+		setTimeout((os_timer_func_t *)wifi_station_connect, NULL, 2000*3);
+		setTimeout((os_timer_func_t *)wifi_auto_detect,  NULL, 3000*3);
 	}
 }
 

@@ -179,11 +179,17 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 // Helper to prepare and send respone
 LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
-	if (p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK || p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {	// special messaging
+	if (p_work->p_config->post_type & MB_POSTTYPE_THINGSPEAK) {	// special messaging; bitwise check; both possible
 		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
-		MB_DIO_DEBUG("DIO:sendstate:%s\n", response);
+		MB_DIO_DEBUG("DIO:sendstate ThingSpeak:%s\n", response);
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
+	} else if (p_work->p_config->post_type & MB_POSTTYPE_IFTTT) {	// special messaging
+		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
+		MB_DIO_DEBUG("DIO:sendstate IFTTT:%s\n", response);
+		
+		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), mb_gethost_ifttt(), user_config_events_port(), mb_getpath_ifttt(), response);
 	}
+	
 #if MB_ACTIONS_ENABLE
 	if (p_work->state == 1 && p_work->p_config->action >= MB_ACTIONTYPE_FIRST && p_work->p_config->action <= MB_ACTIONTYPE_LAST) {
 		mb_dio_action_data.action_type = p_work->p_config->action;
@@ -646,7 +652,7 @@ void ICACHE_FLASH_ATTR mb_dio_init() {
 			p_dio_config->items[i].pls_off = 0;			// length of the pulse OFF(mseconds)
 		}
 
-		MB_DIO_DEBUG("DIO:Init with defaults!");
+		MB_DIO_DEBUG("DIO:Init with defaults!\n");
 	}
 	
 	if (!isStartReading)

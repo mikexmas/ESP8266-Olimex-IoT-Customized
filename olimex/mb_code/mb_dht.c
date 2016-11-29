@@ -519,7 +519,7 @@ void ICACHE_FLASH_ATTR mb_dht_init(bool isStartReading) {
 		p_dht_config->low_h = 0.0f;
 		p_dht_config->hi_h = 0.0f;
 		
-		MB_DHT_DEBUG("DHT: init with defaults!");
+		MB_DHT_DEBUG("DHT: init with defaults!\n");
 	}
 	
 	if (!isStartReading)

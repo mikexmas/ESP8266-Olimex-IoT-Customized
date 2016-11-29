@@ -1,3 +1,4 @@
+
 #include "mb_main.h"
 
 #include "osapi.h"
@@ -56,6 +57,15 @@ void ICACHE_FLASH_ATTR mb_main() {
 	if (cnt) {
 		ETS_GPIO_INTR_ATTACH(mb_main_intr_handler, NULL);
 	}
+}
+
+// gets 
+char *ICACHE_FLASH_ATTR mb_getpath_ifttt() {
+	return user_config_events_name();
+}
+
+char *ICACHE_FLASH_ATTR mb_gethost_ifttt() {
+	return MB_POSTHOST_IFTTT;
 }
 
 /* Interrupts */
