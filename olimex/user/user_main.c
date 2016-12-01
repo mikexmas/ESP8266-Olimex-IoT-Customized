@@ -70,7 +70,7 @@ void ICACHE_FLASH_ATTR user_rf_pre_init(void) {
 void ICACHE_FLASH_ATTR user_init_done() {
 	debug("\nINIT: Done\n\n");
 	/* MihaB added */
-	setTimeout(mb_main, NULL, 2000);
+	setTimeout(mb_main, NULL, 5000);
 	/* End MihaB Added */
 }
 

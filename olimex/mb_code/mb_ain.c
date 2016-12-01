@@ -103,7 +103,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_set_response(char *response, bool is_fault, 
 		);
 		
 	// event: do we want special format (thingspeak) (
-	} else if (req_type==MB_REQTYPE_NONE && p_ain_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
+	} else if (req_type==MB_REQTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
 			"{\"api_key\":\"%s\", \"%s\":%s}",
@@ -112,7 +112,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_set_response(char *response, bool is_fault, 
 			ain_value_str);
 			
 	// event: special case - ifttt; measurement is evaluated before
-	} else if (req_type==MB_REQTYPE_SPECIAL && p_ain_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
+	} else if (req_type==MB_REQTYPE_IFTTT) {		// states change only
 		char signal_name[30];
 		signal_name[0] = 0x00;
 		os_sprintf(signal_name, "%s", 
@@ -169,8 +169,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_update() {
 				
 		MB_AIN_DEBUG("AIN:Eval:%d,Notif:%d,Notif_str:%s,Make:%d\n",eval_val, ain_limits_notified, ain_limits_notified_str, make_event);
 
-		if (make_event && p_ain_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-			mb_ain_set_response(response, false, MB_REQTYPE_SPECIAL);
+		if (make_event && p_ain_config->post_type & MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
+			mb_ain_set_response(response, false, MB_REQTYPE_IFTTT);
 			webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 		}
 #if MB_ACTIONS_ENABLE			
@@ -198,8 +198,8 @@ LOCAL void ICACHE_FLASH_ATTR mb_ain_update() {
 		count = 0;
 		
 		// Thingspeak
-		if (p_ain_config->post_type == MB_POSTTYPE_THINGSPEAK) {
-			mb_ain_set_response(response, false, MB_REQTYPE_SPECIAL);	
+		if (p_ain_config->post_type & MB_POSTTYPE_THINGSPEAK) {
+			mb_ain_set_response(response, false, MB_REQTYPE_THINGSPEAK);	
 			webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 		}
 		

@@ -53,6 +53,9 @@ LOCAL bool ICACHE_FLASH_ATTR ping_read_from_sensor() {
 					
 		if (p_ping_config->max_distance < 0.0f)
 			mb_ping_val = uhl_fabs(p_ping_config->max_distance) - readVal + p_ping_config->offset;
+			if (mb_ping_val < 0.0f) {
+				mb_ping_val = 0.0f;
+			}
 		else
 			mb_ping_val = readVal + p_ping_config->offset;
 		uhl_flt2str(mb_ping_val_str, mb_ping_val, 2);
@@ -123,7 +126,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 		);
 
 	// event: do we want special format (thingspeak) (
-	} else if (req_type == MB_REQTYPE_SPECIAL && p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
+	} else if (req_type == MB_REQTYPE_THINGSPEAK) {		// states change only
 		json_sprintf(
 			response,
 			"{\"api_key\":\"%s\", \"%s\":%s}",
@@ -133,7 +136,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_ping_set_response(char *response, bool is_fault,
 		);
 		
 	// event: special case - ifttt; measurement is evaluated before
-	} else if (req_type == MB_REQTYPE_SPECIAL && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
+	} else if (req_type == MB_REQTYPE_IFTTT) {		// states change only
 		char signal_name[30];
 		signal_name[0] = 0x00;
 		os_sprintf(signal_name, "%s[%s]", 
@@ -181,7 +184,7 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 		
 		// Allways check for limits crossing
 		// Special handling; notify once only when limit exceeded
-		if (p_ping_config->post_type == MB_POSTTYPE_IFTTT
+		if (p_ping_config->post_type & MB_POSTTYPE_IFTTT
 #if MB_ACTIONS_ENABLE
 			|| p_ping_config->action >= MB_ACTIONTYPE_FIRST && p_ping_config->action <= MB_ACTIONTYPE_LAST
 #endif
@@ -203,9 +206,10 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 				
 			MB_PING_DEBUG("PING:Eval:%d,Notif:%d,Notif_str:%s,Make:%d\n",eval_val, mb_limits_notified, mb_limits_notified_str, make_event);
 
-			if (make_event && p_ping_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
-				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
+			if (make_event && p_ping_config->post_type & MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
+				mb_ping_set_response(response, false, MB_REQTYPE_IFTTT);
+				MB_PING_DEBUG("PING:IFTTT:%s\n",response);
+				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), mb_gethost_ifttt(), user_config_events_port(), mb_getpath_ifttt(), response);
 			}
 
 #if MB_ACTIONS_ENABLE			
@@ -230,8 +234,8 @@ void ICACHE_FLASH_ATTR ping_timer_update() {
 			count = 0;
 			
 			// Special=> Thingsspeak
-			if (p_ping_config->post_type == MB_POSTTYPE_THINGSPEAK) {
-				mb_ping_set_response(response, false, MB_REQTYPE_SPECIAL);
+			if (p_ping_config->post_type & MB_POSTTYPE_THINGSPEAK) {
+				mb_ping_set_response(response, false, MB_REQTYPE_THINGSPEAK);
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 

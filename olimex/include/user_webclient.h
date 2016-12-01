@@ -6,7 +6,7 @@
 	
 	#define WEBCLIENT_TIMEOUT              10000
 	#define WEBCLIENT_RETRY_AFTER          20000
-	#define WEBCLIENT_RETRY_MAX            15
+	#define WEBCLIENT_RETRY_MAX            99
 	
 	#include "queue.h"
 	#include "user_timer.h"

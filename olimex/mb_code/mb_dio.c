@@ -180,11 +180,12 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_output(mb_dio_work_t *p_work) {
 LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 	char response[WEBSERVER_MAX_RESPONSE_LEN];
 	if (p_work->p_config->post_type & MB_POSTTYPE_THINGSPEAK) {	// special messaging; bitwise check; both possible
-		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
+		mb_dio_set_response(response, p_work, MB_REQTYPE_THINGSPEAK);
 		MB_DIO_DEBUG("DIO:sendstate ThingSpeak:%s\n", response);
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
-	} else if (p_work->p_config->post_type & MB_POSTTYPE_IFTTT) {	// special messaging
-		mb_dio_set_response(response, p_work, MB_REQTYPE_SPECIAL);
+	}
+	if (p_work->p_config->post_type & MB_POSTTYPE_IFTTT) {	// special messaging
+		mb_dio_set_response(response, p_work, MB_REQTYPE_IFTTT);
 		MB_DIO_DEBUG("DIO:sendstate IFTTT:%s\n", response);
 		
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), mb_gethost_ifttt(), user_config_events_port(), mb_getpath_ifttt(), response);
@@ -245,7 +246,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		os_free(str_tmp);
 
 	// event: do we want special format (thingspeak)
-	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_THINGSPEAK) {		// states change only
+	} else if (req_type==MB_REQTYPE_THINGSPEAK && p_work != NULL && p_work->p_config != NULL) {		// states change only
 		json_sprintf(
 			response,
 			"{\"api_key\":\"%s\", \"%s\":%d}",
@@ -255,7 +256,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_set_response(char *response, mb_dio_work_t *
 		);
 
 	// event: do we want special format (IFTTT): { "value1" : "", "value2" : "", "value3" : "" }
-	} else if (req_type==MB_REQTYPE_SPECIAL && p_work != NULL && p_work->p_config != NULL && p_work->p_config->post_type == MB_POSTTYPE_IFTTT) {		// states change only
+	} else if (req_type==MB_REQTYPE_IFTTT && p_work != NULL && p_work->p_config != NULL) {		// states change only
 		char signal_name[20];
 		signal_name[0] = 0x00;
 		if (os_strlen(p_work->p_config->name) == 0) {

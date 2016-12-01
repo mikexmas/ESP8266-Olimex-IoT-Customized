@@ -189,7 +189,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 		);
 
 	// event: thingspeak (
-	} else if (req_type==MB_REQTYPE_SPECIAL && p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
+	} else if (req_type==MB_REQTYPE_THINGSPEAK) {
 		json_sprintf(
 			response,
 			"{\"api_key\":\"%s\", \"%s\":%s, \"%s\":%s}",
@@ -201,7 +201,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dht_set_response(char *response, bool is_fault, 
 		);
 
 	// event: IFTTT; measurement is evaluated before
-	} else if (req_type==MB_REQTYPE_SPECIAL && p_dht_config->post_type == MB_POSTTYPE_IFTTT) {
+	} else if (req_type==MB_REQTYPE_IFTTT) {
 		char signal_name[30];
 		signal_name[0] = 0x00;
 		os_sprintf(signal_name, "%s[%s]/%s[%s]",
@@ -288,8 +288,8 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 			MB_DHT_DEBUG("DHT:Eval:%d,Notif_T:%d,Notif_T_str:%s,Notif_H:%d,Notif_H_str:%s,Make:%d\n",eval_val, mb_limits_notified_t, mb_limits_notified_t_str, mb_limits_notified_h, mb_limits_notified_h_str, make_event);
 			
 			// Special handling; notify once only when limit exceeded
-			if (make_event && p_dht_config->post_type == MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
-				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);
+			if (make_event && p_dht_config->post_type & MB_POSTTYPE_IFTTT) {	// IFTTT limits check; make hysteresis to reset flag
+				mb_dht_set_response(response, false, MB_REQTYPE_IFTTT);
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 #if MB_ACTIONS_ENABLE			
@@ -318,9 +318,9 @@ void ICACHE_FLASH_ATTR dht_timer_update() {
 			old_state_h = mb_dht_hum;
 			count = 0;
 
-			// Thinspeak 
-			if (p_dht_config->post_type == MB_POSTTYPE_THINGSPEAK) {
-				mb_dht_set_response(response, false, MB_REQTYPE_SPECIAL);	
+			// Thingspeak 
+			if (p_dht_config->post_type & MB_POSTTYPE_THINGSPEAK) {
+				mb_dht_set_response(response, false, MB_REQTYPE_THINGSPEAK);	
 				webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 			}
 

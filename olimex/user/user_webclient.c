@@ -785,13 +785,16 @@ LOCAL bool ICACHE_FLASH_ATTR webclient_host_check(char *host) {
 #endif
 		return false;
 	}
-	
+
+	/* Miha B: ALLWAYS put to queue !
 	if (wifi_station_get_connect_status() != STATION_GOT_IP) {
 #if WEBCLIENT_DEBUG
 		debug("WEBCLIENT: Station not connected. Request ignored!\n");
 #endif
 		return false;
 	}
+	*/
+
 	return true;
 }
 
