@@ -184,7 +184,7 @@ LOCAL void ICACHE_FLASH_ATTR mb_dio_send_state(mb_dio_work_t *p_work) {
 		MB_DIO_DEBUG("DIO:sendstate ThingSpeak:%s\n", response);
 		webclient_post(user_config_events_ssl(), user_config_events_user(), user_config_events_password(), user_config_events_server(), user_config_events_port(), user_config_events_path(), response);
 	}
-	if (p_work->p_config->post_type & MB_POSTTYPE_IFTTT) {	// special messaging
+	if (p_work->p_config->post_type & MB_POSTTYPE_IFTTT && p_work->state == 1 && p_work->state_old == 0) {	// special messaging, IFTTT only when 0=>1
 		mb_dio_set_response(response, p_work, MB_REQTYPE_IFTTT);
 		MB_DIO_DEBUG("DIO:sendstate IFTTT:%s\n", response);
 		
